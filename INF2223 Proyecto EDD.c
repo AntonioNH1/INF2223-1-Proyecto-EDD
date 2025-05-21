@@ -122,3 +122,162 @@ struct Denuncia {
     char *RutDenunciante;     // RUT del denunciante
     char *FechaDenuncia;      // Fecha en que se realiza la denuncia
 };
+
+struct Causa* crearCausa(const char *categoria, const char *ruc, const char *comuna) {
+    struct Causa *nuevaCausa;
+
+    nuevaCausa = (struct Causa*) malloc(sizeof(struct Causa));
+    nuevaCausa->CategoriaCausa = strdup(categoria);
+    nuevaCausa->RUC = strdup(ruc);
+    nuevaCausa->Comuna = strdup(comuna);
+    nuevaCausa->carpetaInvestigativa = NULL;
+    nuevaCausa->fiscalEncargado = NULL;
+
+    return nuevaCausa;
+}
+
+void agregarCausa(struct MinisterioPublico *ministerio, struct Causa *causa) {
+    struct NodoCausa *nuevoNodo;
+
+    nuevoNodo = (struct NodoCausa*) malloc(sizeof(struct NodoCausa));
+    nuevoNodo->datosCausa = causa;
+    nuevoNodo->sig = ministerio->causas; // CAMBIADO
+    ministerio->causas = nuevoNodo;      // CAMBIADO
+}
+
+void mostrarCausas(struct MinisterioPublico *ministerio) {
+    struct NodoCausa *nodoActual;
+    struct Causa *causaActual;
+
+    nodoActual = ministerio->causas; // CAMBIADO
+
+    printf("\nListado de causas:\n");
+    while (nodoActual != NULL) {
+        causaActual = nodoActual->datosCausa;
+        printf("RUC: %s | Categoría: %s | Comuna: %s\n",
+               causaActual->RUC, causaActual->CategoriaCausa, causaActual->Comuna);
+        nodoActual = nodoActual->sig;
+    }
+}
+
+struct Fiscal* crearFiscal(int id, const char *nombre, const char *rut) {
+    struct Fiscal *nuevoFiscal;
+
+    nuevoFiscal = (struct Fiscal*) malloc(sizeof(struct Fiscal));
+    nuevoFiscal->idFiscal = id;
+    nuevoFiscal->nombre = strdup(nombre);
+    nuevoFiscal->rut = strdup(rut);
+    nuevoFiscal->totalCausas = 0;
+
+    return nuevoFiscal;
+}
+
+void agregarFiscal(struct MinisterioPublico *ministerio, struct Fiscal *fiscal) {
+    struct NodoFiscal *nuevoNodo;
+
+    nuevoNodo = (struct NodoFiscal*) malloc(sizeof(struct NodoFiscal));
+    nuevoNodo->datosFiscal = fiscal;
+    nuevoNodo->sig = ministerio->fiscales; // CAMBIADO
+    ministerio->fiscales = nuevoNodo;      // CAMBIADO
+}
+
+void mostrarFiscales(struct MinisterioPublico *ministerio) {
+    struct NodoFiscal *nodoActual;
+    struct Fiscal *fiscalActual;
+
+    nodoActual = ministerio->fiscales; // CAMBIADO
+
+    printf("\nListado de fiscales:\n");
+    while (nodoActual != NULL) {
+        fiscalActual = nodoActual->datosFiscal;
+        printf("ID: %d | Nombre: %s | RUT: %s | Total causas: %d\n",
+               fiscalActual->idFiscal, fiscalActual->nombre,
+               fiscalActual->rut, fiscalActual->totalCausas);
+        nodoActual = nodoActual->sig;
+    }
+}
+
+int menuMinisterioPublico() {
+    struct MinisterioPublico ministerio;
+    int opcion;
+
+    ministerio.causas = NULL;
+    ministerio.fiscales = NULL;
+    ministerio.raizImputados = NULL;
+
+    do {
+        printf("\n--- MENU MINISTERIO PUBLICO ---\n");
+        printf("1. Agregar causa\n");
+        printf("2. Mostrar causas\n");
+        printf("3. Agregar fiscal\n");
+        printf("4. Mostrar fiscales\n");
+        printf("5. Salir\n");
+        printf("Opcion: ");
+        scanf("%d", &opcion);
+        getchar(); // limpiar buffer
+
+        if (opcion == 1) {
+            char categoriaIngresada[100];
+            char rucIngresado[20];
+            char comunaIngresada[50];
+            struct Causa *nuevaCausa;
+
+            printf("RUC: ");
+            fgets(rucIngresado, sizeof(rucIngresado), stdin);
+            rucIngresado[strcspn(rucIngresado, "\n")] = '\0';
+
+            printf("Categoria de la causa: ");
+            fgets(categoriaIngresada, sizeof(categoriaIngresada), stdin);
+            categoriaIngresada[strcspn(categoriaIngresada, "\n")] = '\0';
+
+            printf("Comuna: ");
+            fgets(comunaIngresada, sizeof(comunaIngresada), stdin);
+            comunaIngresada[strcspn(comunaIngresada, "\n")] = '\0';
+
+            nuevaCausa = crearCausa(categoriaIngresada, rucIngresado, comunaIngresada);
+            agregarCausa(&ministerio, nuevaCausa);
+
+            printf("Causa agregada correctamente.\n");
+
+        } else if (opcion == 2) {
+            mostrarCausas(&ministerio);
+
+        } else if (opcion == 3) {
+            int idIngresado;
+            char nombreIngresado[100];
+            char rutIngresado[20];
+            struct Fiscal *nuevoFiscal;
+
+            printf("ID Fiscal: ");
+            scanf("%d", &idIngresado);
+            getchar();
+
+            printf("Nombre: ");
+            fgets(nombreIngresado, sizeof(nombreIngresado), stdin);
+            nombreIngresado[strcspn(nombreIngresado, "\n")] = '\0';
+
+            printf("RUT: ");
+            fgets(rutIngresado, sizeof(rutIngresado), stdin);
+            rutIngresado[strcspn(rutIngresado, "\n")] = '\0';
+
+            nuevoFiscal = crearFiscal(idIngresado, nombreIngresado, rutIngresado);
+            agregarFiscal(&ministerio, nuevoFiscal);
+
+            printf("Fiscal agregado correctamente.\n");
+
+        } else if (opcion == 4) {
+            mostrarFiscales(&ministerio);
+        }
+
+    } while (opcion != 5);
+
+    return 0;
+}
+
+
+
+int main() {
+    int resultado;
+    resultado = menuMinisterioPublico();
+    return 0;
+}

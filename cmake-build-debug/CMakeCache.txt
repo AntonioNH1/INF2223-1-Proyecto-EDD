@@ -125,7 +125,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=INF2223
+CMAKE_PROJECT_NAME:STATIC=INF2223_Proyecto_EDD
 
 //Path to a program.
 CMAKE_RANLIB:FILEPATH=E:/CLion 2024.3.4/bin/mingw/bin/ranlib.exe
@@ -215,6 +215,15 @@ INF2223_BINARY_DIR:STATIC=E:/Codigos/INF2223 Proyecto EDD/cmake-build-debug
 
 //Value Computed by CMake
 INF2223_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+INF2223_Proyecto_EDD_BINARY_DIR:STATIC=E:/Codigos/INF2223 Proyecto EDD/cmake-build-debug
+
+//Value Computed by CMake
+INF2223_Proyecto_EDD_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+INF2223_Proyecto_EDD_SOURCE_DIR:STATIC=E:/Codigos/INF2223 Proyecto EDD
 
 //Value Computed by CMake
 INF2223_SOURCE_DIR:STATIC=E:/Codigos/INF2223 Proyecto EDD
