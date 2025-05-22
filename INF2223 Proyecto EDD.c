@@ -2,6 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define MAX_DENUNCIAS 1000
+
+
 // Estructura principal que modela el Ministerio Público
 struct MinisterioPublico {
     struct NodoCausa *causas;              // Lista simple de causas
@@ -38,10 +41,18 @@ struct Fiscal {
     int totalCausas;    // Número de causas asignadas
 };
 
+// Información de una denuncia
+struct Denuncia {
+    char *PersonaDenunciante; // Nombre de quien realiza la denuncia
+    char *RutDenunciante;     // RUT del denunciante
+    char *FechaDenuncia;      // Fecha en que se realiza la denuncia
+};
+
+
 // Información de una carpeta investigativa (asociada a una causa)
 struct CarpetaInvestigativa {
     char *estadoCaso;                   // Estado actual del caso (en investigación, cerrado, etc.)
-    struct Denuncia *denuncias;        // Arreglo de denuncias asociadas
+    struct Denuncia denuncias[MAX_DENUNCIAS]; // Arreglo de denuncias asociadas
     int CantDenuncias;                 // Cantidad de denuncias en la carpeta
     struct NodoPrueba *pruebas;        // Lista circular de pruebas
     struct NodoDiligencia *diligencias; // Lista simple de diligencias realizadas
@@ -82,7 +93,7 @@ struct NodoResolucion { // Lista simple
 // Información de una resolución judicial
 struct Resolucion {
     char *tipo;      // Tipo de resolución: sentencia, sobreseimiento, etc.
-    char *contenido; // Contenido o fundamentos
+    char *contenido; // Texto completo de la resolucion final
     char *fecha;     // Fecha de emisión
 };
 
@@ -116,12 +127,6 @@ struct Imputado {
     struct NodoDeclaracion *declaraciones; // Lista de declaraciones del imputado
 };
 
-// Información de una denuncia
-struct Denuncia {
-    char *PersonaDenunciante; // Nombre de quien realiza la denuncia
-    char *RutDenunciante;     // RUT del denunciante
-    char *FechaDenuncia;      // Fecha en que se realiza la denuncia
-};
 
 struct Causa* crearCausa(const char *categoria, const char *ruc, const char *comuna) {
     struct Causa *nuevaCausa;
@@ -141,15 +146,15 @@ void agregarCausa(struct MinisterioPublico *ministerio, struct Causa *causa) {
 
     nuevoNodo = (struct NodoCausa*) malloc(sizeof(struct NodoCausa));
     nuevoNodo->datosCausa = causa;
-    nuevoNodo->sig = ministerio->causas; // CAMBIADO
-    ministerio->causas = nuevoNodo;      // CAMBIADO
+    nuevoNodo->sig = ministerio->causas;
+    ministerio->causas = nuevoNodo;
 }
 
 void mostrarCausas(struct MinisterioPublico *ministerio) {
     struct NodoCausa *nodoActual;
     struct Causa *causaActual;
 
-    nodoActual = ministerio->causas; // CAMBIADO
+    nodoActual = ministerio->causas;
 
     printf("\nListado de causas:\n");
     while (nodoActual != NULL) {
@@ -196,6 +201,63 @@ void mostrarFiscales(struct MinisterioPublico *ministerio) {
         nodoActual = nodoActual->sig;
     }
 }
+
+struct CarpetaInvestigativa *crearCarpetaInvestigativa(const char *estado) {
+    struct CarpetaInvestigativa *nueva;
+
+    nueva = (struct CarpetaInvestigativa *) malloc(sizeof(struct CarpetaInvestigativa));
+    nueva->estadoCaso = strdup(estado);
+    nueva->CantDenuncias = 0;
+    nueva->pruebas = NULL;
+    nueva->diligencias = NULL;
+    nueva->resoluciones = NULL;
+    nueva->declaraciones = NULL;
+
+    return nueva;
+}
+
+
+
+struct Denuncia crearDenuncia(const char *nombre, const char *rut, const char *fecha) {
+    struct Denuncia nueva;
+
+    nueva.PersonaDenunciante = strdup(nombre);
+    nueva.RutDenunciante = strdup(rut);
+    nueva.FechaDenuncia = strdup(fecha);
+
+    return nueva;
+}
+
+
+void agregarDenunciaACarpeta(struct CarpetaInvestigativa *carpeta, struct Denuncia nuevaDenuncia) {
+    if (carpeta->CantDenuncias >= MAX_DENUNCIAS) {
+        printf("No se pueden agregar mas denuncias: se alcanzo el maximo de %d.\n", MAX_DENUNCIAS);
+        return;
+    }
+
+    carpeta->denuncias[carpeta->CantDenuncias] = nuevaDenuncia;
+    carpeta->CantDenuncias++;
+
+    printf(" Denuncia agregada correctamente a la carpeta investigativa.\n");
+}
+
+void mostrarDenuncias(struct CarpetaInvestigativa *carpeta) {
+    // Validar si la carpeta existe o si no hay denuncias
+    if (carpeta == NULL || carpeta->CantDenuncias == 0) {
+        printf("No hay denuncias registradas en la carpeta.\n");
+        return;
+    }
+
+    printf("\n--- DENUNCIAS REGISTRADAS ---\n");
+
+    int i;
+    for (i = 0; i < carpeta->CantDenuncias; i++) {
+        struct Denuncia d = carpeta->denuncias[i];  // acceder a la denuncia i
+        printf("Denunciante: %s | RUT: %s | Fecha: %s\n", d.PersonaDenunciante, d.RutDenunciante, d.FechaDenuncia);
+    }
+}
+
+
 
 void leerCadena(char *buffer, int tam) {
     fgets(buffer, tam, stdin);
