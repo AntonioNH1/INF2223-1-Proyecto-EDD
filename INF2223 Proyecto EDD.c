@@ -21,6 +21,7 @@ struct NodoCausa { // Lista simple
 // Información asociada a una causa penal
 struct Causa {
     struct CarpetaInvestigativa *carpetaInvestigativa; // Carpeta con antecedentes del caso
+    struct NodoImputadoABB *imputadoAsociado; //referencia al imputado del caso
     char *CategoriaCausa;   // Tipo de delito o denuncia
     char *RUC;              // Rol Único de Causa (identificador)
     char *Comuna;           // Comuna donde se originó la causa
