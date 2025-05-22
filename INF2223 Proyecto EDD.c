@@ -197,87 +197,111 @@ void mostrarFiscales(struct MinisterioPublico *ministerio) {
     }
 }
 
-int menuMinisterioPublico() {
-    struct MinisterioPublico ministerio;
+void leerCadena(char *buffer, int tam) {
+    fgets(buffer, tam, stdin);
+    buffer[strcspn(buffer, "\n")] = '\0'; // Eliminar salto de línea
+}
+
+/*
+███╗   ███╗███████╗███╗   ██╗██╗   ██╗
+████╗ ████║██╔════╝████╗  ██║██║   ██║
+██╔████╔██║█████╗  ██╔██╗ ██║██║   ██║
+██║╚██╔╝██║██╔══╝  ██║╚██╗██║██║   ██║
+██║ ╚═╝ ██║███████╗██║ ╚████║╚██████╔╝
+╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝
+*/
+
+void menuMinisterioPublico(struct MinisterioPublico *ministerio) {
     int opcion;
-
-    ministerio.causas = NULL;
-    ministerio.fiscales = NULL;
-    ministerio.raizImputados = NULL;
-
     do {
-        printf("\n--- MENU MINISTERIO PUBLICO ---\n");
+        printf("\n--- MINISTERIO PUBLICO ---\n");
         printf("1. Agregar causa\n");
         printf("2. Mostrar causas\n");
         printf("3. Agregar fiscal\n");
         printf("4. Mostrar fiscales\n");
         printf("5. Salir\n");
-        printf("Opcion: ");
+
+        printf("\nSeleccione una opcion: ");
         scanf("%d", &opcion);
         getchar(); // limpiar buffer
 
-        if (opcion == 1) {
-            char categoriaIngresada[100];
-            char rucIngresado[20];
-            char comunaIngresada[50];
-            struct Causa *nuevaCausa;
+        switch (opcion) {
+            case 1: {
+                char categoria[100];
+                char ruc[20];
+                char comuna[50];
+                struct Causa *nuevaCausa;
 
-            printf("RUC: ");
-            fgets(rucIngresado, sizeof(rucIngresado), stdin);
-            rucIngresado[strcspn(rucIngresado, "\n")] = '\0';
+                printf("RUC: ");
+                leerCadena(ruc, sizeof(ruc));
 
-            printf("Categoria de la causa: ");
-            fgets(categoriaIngresada, sizeof(categoriaIngresada), stdin);
-            categoriaIngresada[strcspn(categoriaIngresada, "\n")] = '\0';
+                printf("Categoria de la causa: ");
+                leerCadena(categoria, sizeof(categoria));
 
-            printf("Comuna: ");
-            fgets(comunaIngresada, sizeof(comunaIngresada), stdin);
-            comunaIngresada[strcspn(comunaIngresada, "\n")] = '\0';
+                printf("Comuna: ");
+                leerCadena(comuna, sizeof(comuna));
 
-            nuevaCausa = crearCausa(categoriaIngresada, rucIngresado, comunaIngresada);
-            agregarCausa(&ministerio, nuevaCausa);
+                nuevaCausa = crearCausa(categoria, ruc, comuna);
+                agregarCausa(ministerio, nuevaCausa);
 
-            printf("Causa agregada correctamente.\n");
+                printf("Causa agregada correctamente.\n");
+                break;
+            }
 
-        } else if (opcion == 2) {
-            mostrarCausas(&ministerio);
+            case 2:
+                mostrarCausas(ministerio);
+                break;
 
-        } else if (opcion == 3) {
-            int idIngresado;
-            char nombreIngresado[100];
-            char rutIngresado[20];
-            struct Fiscal *nuevoFiscal;
+            case 3: {
+                int idFiscal;
+                char nombre[100];
+                char rut[20];
+                struct Fiscal *nuevoFiscal;
 
-            printf("ID Fiscal: ");
-            scanf("%d", &idIngresado);
-            getchar();
+                printf("ID Fiscal: ");
+                scanf("%d", &idFiscal);
+                getchar();
 
-            printf("Nombre: ");
-            fgets(nombreIngresado, sizeof(nombreIngresado), stdin);
-            nombreIngresado[strcspn(nombreIngresado, "\n")] = '\0';
+                printf("Nombre: ");
+                leerCadena(nombre, sizeof(nombre));
 
-            printf("RUT: ");
-            fgets(rutIngresado, sizeof(rutIngresado), stdin);
-            rutIngresado[strcspn(rutIngresado, "\n")] = '\0';
+                printf("RUT: ");
+                leerCadena(rut, sizeof(rut));
 
-            nuevoFiscal = crearFiscal(idIngresado, nombreIngresado, rutIngresado);
-            agregarFiscal(&ministerio, nuevoFiscal);
+                nuevoFiscal = crearFiscal(idFiscal, nombre, rut);
+                agregarFiscal(ministerio, nuevoFiscal);
 
-            printf("Fiscal agregado correctamente.\n");
+                printf("Fiscal agregado correctamente.\n");
+                break;
+            }
 
-        } else if (opcion == 4) {
-            mostrarFiscales(&ministerio);
+            case 4:
+                mostrarFiscales(ministerio);
+                break;
+
+            case 5:
+                printf("Saliendo del sistema...\n");
+                exit(0);
+                break;
+
+            default:
+                printf("Opcion no valida. Intente nuevamente.\n");
+                break;
         }
 
     } while (opcion != 5);
-
-    return 0;
 }
-
 
 
 int main() {
-    int resultado;
-    resultado = menuMinisterioPublico();
+    struct MinisterioPublico ministerio;
+
+    ministerio.causas = NULL;
+    ministerio.fiscales = NULL;
+    ministerio.raizImputados = NULL;
+
+    menuMinisterioPublico(&ministerio);
+
     return 0;
 }
+
