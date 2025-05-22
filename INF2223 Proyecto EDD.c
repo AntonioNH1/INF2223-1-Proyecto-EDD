@@ -127,6 +127,10 @@ struct Imputado {
     struct NodoDeclaracion *declaraciones; // Lista de declaraciones del imputado
 };
 
+void leerCadena(char *buffer, int tam) {
+    fgets(buffer, tam, stdin);
+    buffer[strcspn(buffer, "\n")] = '\0'; // Eliminar salto de línea
+}
 
 struct Causa* crearCausa(const char *categoria, const char *ruc, const char *comuna) {
     struct Causa *nuevaCausa;
@@ -257,12 +261,163 @@ void mostrarDenuncias(struct CarpetaInvestigativa *carpeta) {
     }
 }
 
+struct Diligencia* crearDiligencia(const char *descripcion, const char *fecha, const char *prioridad) {
+    struct Diligencia *nuevaDiligencia;
 
+    nuevaDiligencia = (struct Diligencia*) malloc(sizeof(struct Diligencia));
+    if (nuevaDiligencia == NULL) {
+        printf("Error al asignar memoria para la diligencia.\n");
+        return NULL;
+    }
 
-void leerCadena(char *buffer, int tam) {
-    fgets(buffer, tam, stdin);
-    buffer[strcspn(buffer, "\n")] = '\0'; // Eliminar salto de línea
+    nuevaDiligencia->descripcion = strdup(descripcion);
+    nuevaDiligencia->fecha = strdup(fecha);
+    nuevaDiligencia->prioridad = strdup(prioridad);
+
+    return nuevaDiligencia;
 }
+
+void agregarDiligencia(struct Causa *causa) {
+    struct Diligencia *diligenciaNueva;
+    struct NodoDiligencia *nuevoNodo;
+    struct NodoDiligencia *nodoActual;
+    char descripcion[100];
+    char fecha[30];
+    char prioridad[30];
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL) {
+        printf("Causa o carpeta inválida.\n");
+        return;
+    }
+
+    printf("Ingrese descripción de la diligencia: ");
+    leerCadena(descripcion, sizeof(descripcion));
+
+    printf("Ingrese fecha (dd-mm-aaaa): ");
+    leerCadena(fecha, sizeof(fecha));
+
+    printf("Ingrese prioridad (alta, media, baja): ");
+    leerCadena(prioridad, sizeof(prioridad));
+
+    diligenciaNueva = crearDiligencia(descripcion, fecha, prioridad);
+    if (diligenciaNueva == NULL) return;
+
+    nuevoNodo = (struct NodoDiligencia*) malloc(sizeof(struct NodoDiligencia));
+    if (nuevoNodo == NULL) {
+        printf("Error al asignar memoria para el nodo de diligencia.\n");
+        return;
+    }
+
+    nuevoNodo->diligencia = diligenciaNueva;
+    nuevoNodo->sig = NULL;
+
+    if (causa->carpetaInvestigativa->diligencias == NULL) {
+        causa->carpetaInvestigativa->diligencias = nuevoNodo;
+    } else {
+        nodoActual = causa->carpetaInvestigativa->diligencias;
+        while (nodoActual->sig != NULL) {
+            nodoActual = nodoActual->sig;
+        }
+        nodoActual->sig = nuevoNodo;
+    }
+
+    printf("Diligencia agregada correctamente.\n");
+}
+
+void mostrarDiligencias(struct Causa *causa) {
+    struct NodoDiligencia *nodoActual;
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL || causa->carpetaInvestigativa->diligencias == NULL) {
+        printf("No hay diligencias registradas.\n");
+        return;
+    }
+    nodoActual = causa->carpetaInvestigativa->diligencias;
+
+    printf("\n--- Lista de Diligencias ---\n");
+    while (nodoActual != NULL) {
+        printf("- Descripción: %s\n", nodoActual->diligencia->descripcion);
+        printf("  Fecha: %s\n", nodoActual->diligencia->fecha);
+        printf("  Prioridad: %s\n\n", nodoActual->diligencia->prioridad);
+        nodoActual = nodoActual->sig;
+    }
+}
+
+struct Prueba* crearPrueba(const char *tipo) {
+    struct Prueba *nuevaPrueba;
+
+    nuevaPrueba = (struct Prueba*) malloc(sizeof(struct Prueba));
+    if (nuevaPrueba == NULL) {
+        printf("Error al asignar memoria para la prueba.\n");
+        return NULL;
+    }
+
+    nuevaPrueba->TipoPrueba = strdup(tipo);
+    return nuevaPrueba;
+}
+
+void agregarPrueba(struct Causa *causa) {
+    struct NodoPrueba *nuevoNodo;
+    struct NodoPrueba *nodoActual;
+    struct NodoPrueba *inicio;
+    struct Prueba *pruebaNueva;
+    char tipoPrueba[100];
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL) {
+        printf("Causa o carpeta inválida.\n");
+        return;
+    }
+
+    printf("Ingrese tipo de prueba (ej: Fotografía, Video, ADN): ");
+    leerCadena(tipoPrueba, sizeof(tipoPrueba));
+
+    pruebaNueva = crearPrueba(tipoPrueba);
+    if (pruebaNueva == NULL) return;
+
+    nuevoNodo = (struct NodoPrueba*) malloc(sizeof(struct NodoPrueba));
+    if (nuevoNodo == NULL) {
+        printf("Error al asignar memoria para nodo de prueba.\n");
+        return;
+    }
+
+    nuevoNodo->prueba = pruebaNueva;
+
+    inicio = causa->carpetaInvestigativa->pruebas;
+
+    if (inicio == NULL) {
+        nuevoNodo->sig = nuevoNodo;
+        causa->carpetaInvestigativa->pruebas = nuevoNodo;
+    } else {
+        nodoActual = inicio;
+        while (nodoActual->sig != inicio) {
+            nodoActual = nodoActual->sig;
+        }
+        nodoActual->sig = nuevoNodo;
+        nuevoNodo->sig = inicio;
+    }
+
+    printf("Prueba agregada correctamente.\n");
+}
+
+void mostrarPruebas(struct Causa *causa) {
+    struct NodoPrueba *inicio;
+    struct NodoPrueba *nodoActual;
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL || causa->carpetaInvestigativa->pruebas == NULL) {
+        printf("No hay pruebas registradas.\n");
+        return;
+    }
+
+    inicio = causa->carpetaInvestigativa->pruebas;
+    nodoActual = inicio;
+
+    printf("\n--- Lista de Pruebas Registradas ---\n");
+    do {
+        printf("- Tipo de prueba: %s\n", nodoActual->prueba->TipoPrueba);
+        nodoActual = nodoActual->sig;
+    } while (nodoActual != inicio);
+}
+
+
 
 /*
 ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
