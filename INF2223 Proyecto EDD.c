@@ -154,7 +154,7 @@ void mostrarCausas(struct MinisterioPublico *ministerio) {
     printf("\nListado de causas:\n");
     while (nodoActual != NULL) {
         causaActual = nodoActual->datosCausa;
-        printf("RUC: %s | Categoría: %s | Comuna: %s\n",
+        printf("RUC: %s | Categoria: %s | Comuna: %s\n",
                causaActual->RUC, causaActual->CategoriaCausa, causaActual->Comuna);
         nodoActual = nodoActual->sig;
     }
