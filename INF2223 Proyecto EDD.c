@@ -54,7 +54,7 @@ struct CarpetaInvestigativa {
     int totalDenuncias; // cantidad actual
 };
 
-// Lista simple de objetos investigativos
+// Lista circular de objetos investigativos
 struct NodoObjetoInvestigativo {
     struct ObjetoInvestigativo *objeto;
     struct NodoObjetoInvestigativo *sig;
