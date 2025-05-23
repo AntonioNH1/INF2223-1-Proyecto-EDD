@@ -185,30 +185,25 @@ void obtenerNombreTipoObjeto(int tipo, char *buffer) {
     else strcpy(buffer, "Desconocido");
 }
 
-// Muestra todos los objetos investigativos de un tipo específico desde la carpeta investigativa
-void mostrarObjetosPorTipo(struct CarpetaInvestigativa *carpeta, int tipoBuscado) {
-    struct NodoObjetoInvestigativo *actual;
-    char tipoTexto[25];
+void listarObjetosPorID(struct NodoObjetoInvestigativo *head, int idBuscado) {
+    int encontrado = 0;
 
-    // Validación: no mostrar si la carpeta o lista está vacía
-    if (carpeta == NULL || carpeta->objetos == NULL) {
-        printf("No hay objetos registrados.\n");
-        return;
+    while (head != NULL) {
+        if (head->objeto->id == idBuscado) {
+            printf("Objeto investigativo encontrado:\n");
+            printf("- ID: %d\n", head->objeto->id);
+            printf("  Fecha: %s\n", head->objeto->fecha);
+            printf("  RUT relacionado: %s\n", head->objeto->rut);
+            printf("  Detalle: %s\n", head->objeto->detalle);
+            printf("  Tipo: %d\n\n", head->objeto->tipo);
+            encontrado = 1;
+            break; // Si solo deseas mostrar uno, puedes salir aquí
+        }
+        head = head->sig;
     }
 
-    actual = carpeta->objetos;
-
-    while (actual != NULL) {
-        if (actual->objeto->tipo == tipoBuscado) {
-            obtenerNombreTipoObjeto(actual->objeto->tipo, tipoTexto);
-            printf("ID: %d | Tipo: %s | Fecha: %s | RUT: %s\nDetalle: %s\n\n",
-                   actual->objeto->id,
-                   tipoTexto,
-                   actual->objeto->fecha,
-                   actual->objeto->rut,
-                   actual->objeto->detalle);
-        }
-        actual = actual->sig;
+    if (!encontrado) {
+        printf("No se encontró ningún objeto con el ID %d.\n", idBuscado);
     }
 }
 
