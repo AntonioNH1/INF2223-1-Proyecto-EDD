@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MAX_DENUNCIAS 1000
+
 /***
  *    ███████╗████████╗██████╗ ██╗   ██╗ ██████╗████████╗███████╗
  *    ██╔════╝╚══██╔══╝██╔══██╗██║   ██║██╔════╝╚══██╔══╝██╔════╝
@@ -38,6 +40,7 @@ struct Causa {
     char *RUC;                             // Rol Único de Causa
     char *CategoriaCausa;                 // Tipo de causa (ej: Robo, Estafa)
     char *Comuna;                         // Comuna donde ocurrió
+    char *estado;                        //cerrado o abierto
     struct CarpetaInvestigativa *carpetaInvestigativa; // Antecedentes del caso
     struct Persona *fiscalEncargado;      // Fiscal asignado (tipo 5)
     struct NodoImputadoABB *imputadoAsociado; // Imputado relacionado (tipo 2)
@@ -45,8 +48,10 @@ struct Causa {
 
 // Carpeta investigativa asociada a una causa penal
 struct CarpetaInvestigativa {
-    char *estadoCaso;  // Estado actual del caso (ej: "en investigación")
-    struct NodoObjetoInvestigativo *objetos;  // Lista de objetos vinculados a esta carpeta
+    char *estadoCaso;
+    struct NodoObjetoInvestigativo *objetos;  // lista circular
+    struct ObjetoInvestigativo *denunciasRecientes[MAX_DENUNCIAS]; // arreglo estático
+    int totalDenuncias; // cantidad actual
 };
 
 // Lista simple de objetos investigativos
@@ -115,19 +120,20 @@ void agregarObjeto(struct CarpetaInvestigativa *carpeta, struct ObjetoInvestigat
 
     nuevoNodo = (struct NodoObjetoInvestigativo*) malloc(sizeof(struct NodoObjetoInvestigativo));
     nuevoNodo->objeto = objeto;
-    nuevoNodo->sig = NULL;
 
-    // Si la lista está vacía, se asigna como primer nodo
     if (carpeta->objetos == NULL) {
+        nuevoNodo->sig = nuevoNodo;  // se apunta a sí mismo
         carpeta->objetos = nuevoNodo;
     } else {
         actual = carpeta->objetos;
-        while (actual->sig != NULL) {
+        while (actual->sig != carpeta->objetos) {
             actual = actual->sig;
         }
         actual->sig = nuevoNodo;
+        nuevoNodo->sig = carpeta->objetos;  // cierre circular
     }
 }
+
 
 void agregarObjetoPorTipo(struct CarpetaInvestigativa *carpeta) {
     // --- Declaración de variables ---
@@ -372,5 +378,3 @@ void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, char *rutBuscado)
  *    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝
  *
  */
-
-
