@@ -95,7 +95,7 @@ void leerCadena(char *buffer, int tam) {
 }
 
 // Crea y retorna un puntero a un nuevo ObjetoInvestigativo con los datos recibidos
-struct ObjetoInvestigativo* crearObjetoInvestigativo(int id, const char *fecha, const char *rut, const char *detalle, int tipo) {
+struct ObjetoInvestigativo* crearObjetoInvestigativo(int id, char *fecha, char *rut, char *detalle, int tipo) {
     struct ObjetoInvestigativo *nuevo;
 
     nuevo = (struct ObjetoInvestigativo*) malloc(sizeof(struct ObjetoInvestigativo));
@@ -175,7 +175,6 @@ void agregarObjetoPorTipo(struct CarpetaInvestigativa *carpeta) {
     printf("Objeto agregado correctamente a la carpeta.\n");
 }
 
-
 // Traduce el valor entero del tipo de objeto a un texto representativo
 void obtenerNombreTipoObjeto(int tipo, char *buffer) {
     if (tipo == 1) strcpy(buffer, "Denuncia");
@@ -229,7 +228,7 @@ struct ObjetoInvestigativo* buscarObjetoPorId(struct NodoObjetoInvestigativo *li
 }
 
 // Modifica el detalle y tipo de un objeto investigativo según su ID.
-void modificarDatosObjeto(struct NodoObjetoInvestigativo *listaObjetos, int idBuscado, const char *nuevoDetalle, int nuevoTipo) {
+void modificarDatosObjeto(struct NodoObjetoInvestigativo *listaObjetos, int idBuscado, char *nuevoDetalle, int nuevoTipo) {
     struct ObjetoInvestigativo *objeto;
 
     objeto = buscarObjetoPorId(listaObjetos, idBuscado);
@@ -267,9 +266,8 @@ void eliminarObjetoPorId(struct NodoObjetoInvestigativo **listaObjetos, int idBu
     printf("No se encontró un objeto con ese ID.\n");
 }
 
-
 // Crea y retorna un puntero a una nueva persona con los datos recibidos
-struct Persona* crearPersona(const char *nombre, const char *rut, int tipo) {
+struct Persona* crearPersona(char *nombre, char *rut, int tipo) {
     struct Persona *nueva;
 
     nueva = (struct Persona*) malloc(sizeof(struct Persona));
@@ -300,30 +298,9 @@ void obtenerNombreTipoPersona(int tipo, char *buffer) {
     else strcpy(buffer, "Desconocido");
 }
 
-void mostrarPersonasPorTipo(struct NodoPersona *head, int tipoBuscado) {
-    // --- Declaración de variables ---
-    struct NodoPersona *actual;
-    char tipoTexto[20];
-
-    // --- Asignación inicial ---
-    actual = head;
-
-    // --- Recorrido de la lista ---
-    while (actual != NULL) {
-        if (actual->datosPersona->tipo == tipoBuscado) {
-            obtenerNombreTipoPersona(actual->datosPersona->tipo, tipoTexto);
-            printf("Nombre: %s | RUT: %s | Tipo: %s\n",
-                   actual->datosPersona->nombre,
-                   actual->datosPersona->rut,
-                   tipoTexto);
-        }
-        actual = actual->sig;
-    }
-}
-
 // Busca una persona en la lista por su RUT y retorna el puntero a la persona encontrada.
 // Si no la encuentra, retorna NULL.
-struct Persona* buscarPersonaPorRut(struct NodoPersona *listaPersonas, const char *rutBuscado) {
+struct Persona* buscarPersonaPorRut(struct NodoPersona *listaPersonas, char *rutBuscado) {
     struct NodoPersona *actual;
 
     actual = listaPersonas;
@@ -336,8 +313,24 @@ struct Persona* buscarPersonaPorRut(struct NodoPersona *listaPersonas, const cha
     return NULL;
 }
 
+ void listarPersonaPorRut(struct NodoPersona *lista, char *rut) {
+    struct Persona *actual;
+
+    actual=buscarPersonaPorRut(lista, rut);
+
+    if (actual == NULL) {
+        printf("No se encontró una persona con ese RUT.\n");
+        return;
+    }
+
+    printf("Datos de la persona:\n");
+    printf("Nombre: %s\n", actual->nombre);
+    printf("RUT: %s\n", actual->rut);
+    printf("Tipo: %d\n", actual->tipo);
+}
+
 // Modifica el nombre y tipo de una persona existente según su RUT.
-void modificarDatosPersona(struct NodoPersona *listaPersonas, const char *rutBuscado, const char *nuevoNombre, int nuevoTipo) {
+void modificarDatosPersona(struct NodoPersona *listaPersonas, char *rutBuscado, char *nuevoNombre, int nuevoTipo) {
     struct Persona *persona;
 
     persona = buscarPersonaPorRut(listaPersonas, rutBuscado);
@@ -351,7 +344,7 @@ void modificarDatosPersona(struct NodoPersona *listaPersonas, const char *rutBus
 }
 
 // Elimina una persona de la lista enlazada según su RUT.
-void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, const char *rutBuscado) {
+void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, char *rutBuscado) {
     struct NodoPersona *actual;
     struct NodoPersona *anterior;
 
@@ -375,10 +368,6 @@ void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, const char *rutBu
     printf("No se encontró una persona con ese RUT.\n");
 }
 
-
-
-
-
 /***
  *    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
  *    ████╗ ████║██╔════╝████╗  ██║██║   ██║
@@ -388,6 +377,5 @@ void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, const char *rutBu
  *    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝
  *
  */
-
 
 
