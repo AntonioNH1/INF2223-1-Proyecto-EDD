@@ -38,7 +38,6 @@ struct NodoCausa {
 struct Causa {
     char *RUC;                             // Rol Único de Causa
     char *CategoriaCausa;                 // Tipo de causa (ej: Robo, Estafa)
-    char *Comuna;                         // Comuna donde ocurrió
     char *estado;                        //cerrado o abierto
     struct CarpetaInvestigativa *carpetaInvestigativa; // Antecedentes del caso
     struct Persona *fiscalEncargado;      // Fiscal asignado (tipo 5)
@@ -81,6 +80,7 @@ struct Persona {
     char *nombre;  // Nombre completo
     char *rut;     // RUT único
     int tipo;      // 1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal
+    int involucrado; // 1=Involucrado 0=No involucrado
 };
 
 /***
