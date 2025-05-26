@@ -26,6 +26,13 @@ struct NodoImputadoABB {
     struct NodoPersona *datosImputados;         // Imputado (tipo = 2)
     struct NodoImputadoABB *izq;
     struct NodoImputadoABB *der;
+    struct Formalizacion *formalizacion;
+};
+
+struct Formalizacion {
+    char *delito;
+    char *antecedentes;
+    char *fecha;
 };
 
 // Lista simple de causas
@@ -42,8 +49,8 @@ struct Causa {
     struct CarpetaInvestigativa *carpetaInvestigativa; // Antecedentes del caso
     struct Persona *fiscalEncargado;      // Fiscal asignado (tipo 5)
     struct NodoPersona *testigos;
-    struct NodoPersonas *victimas;
-    struct NodoImputadoABB *imputadosAsociado; // Imputado relacionado (tipo 2)
+    struct NodoPersona *victimas;
+    struct NodoPersona *imputadosAsociados; // Imputado relacionado (tipo 2)
 };
 
 // Carpeta investigativa asociada a una causa penal
@@ -80,7 +87,6 @@ struct Persona {
     char *nombre;  // Nombre completo
     char *rut;     // RUT único
     int tipo;      // 1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal
-    int involucrado; // 1=Involucrado 0=No involucrado
 };
 
 /***
@@ -370,6 +376,115 @@ void eliminarPersonaPorRut(struct NodoPersona **listaPersonas, char *rutBuscado)
     printf("No se encontró una persona con ese RUT.\n");
 }
 
+// Crear una nueva causa penal con datos básicos
+struct Causa* crearCausa(char *ruc, char *categoria, char *estado) {
+    struct Causa *nuevaCausa;
+
+    nuevaCausa = (struct Causa*) malloc(sizeof(struct Causa));
+
+    nuevaCausa->RUC = strdup(ruc);
+    nuevaCausa->CategoriaCausa = strdup(categoria);
+    nuevaCausa->estado = strdup(estado);
+
+    nuevaCausa->carpetaInvestigativa = NULL;
+    nuevaCausa->fiscalEncargado = NULL;
+    nuevaCausa->victimas = NULL;
+    nuevaCausa->testigos = NULL;
+    nuevaCausa->imputadosAsociados = NULL;
+
+    return nuevaCausa;
+}
+
+// Agregar una causa a la lista de causas del Ministerio Público
+void agregarCausa(struct NodoCausa **listaCausas, struct Causa *nuevaCausa) {
+    struct NodoCausa *nuevoNodo;
+
+    nuevoNodo = (struct NodoCausa*) malloc(sizeof(struct NodoCausa));
+    nuevoNodo->datosCausa = nuevaCausa;
+    nuevoNodo->sig = *listaCausas;
+    *listaCausas = nuevoNodo;
+}
+
+// Mostrar todas las causas registradas
+void listarCausas(struct NodoCausa *listaCausas) {
+    struct NodoCausa *nodoActual;
+
+    nodoActual = listaCausas;
+    while (nodoActual != NULL) {
+        printf("RUC: %s | Categoria: %s | Estado: %s\n",
+               nodoActual->datosCausa->RUC,
+               nodoActual->datosCausa->CategoriaCausa,
+               nodoActual->datosCausa->estado);
+        nodoActual = nodoActual->sig;
+    }
+}
+
+
+// Mostrar los datos de una causa buscada por RUC
+void mostrarCausaPorRUC(struct NodoCausa *listaCausas, char *rucBuscado) {
+    struct NodoCausa *nodoActual;
+
+    nodoActual = listaCausas;
+    while (nodoActual != NULL) {
+        if (strcmp(nodoActual->datosCausa->RUC, rucBuscado) == 0) {
+            printf("Causa encontrada:\n");
+            printf("RUC: %s\n", nodoActual->datosCausa->RUC);
+            printf("Categoria: %s\n", nodoActual->datosCausa->CategoriaCausa);
+            printf("Estado: %s\n", nodoActual->datosCausa->estado);
+            return;
+        }
+        nodoActual = nodoActual->sig;
+    }
+
+    printf("No se encontró una causa con ese RUC.\n");
+}
+
+
+// Modificar los campos básicos de una causa buscándola por RUC
+void modificarCausa(struct NodoCausa *listaCausas, char *rucBuscado, char *nuevaCategoria, char *nuevoEstado) {
+    struct NodoCausa *nodoActual;
+
+    nodoActual = listaCausas;
+    while (nodoActual != NULL) {
+        if (strcmp(nodoActual->datosCausa->RUC, rucBuscado) == 0) {
+            nodoActual->datosCausa->CategoriaCausa = strdup(nuevaCategoria);
+            nodoActual->datosCausa->estado = strdup(nuevoEstado);
+            printf("Causa modificada correctamente.\n");
+            return;
+        }
+        nodoActual = nodoActual->sig;
+    }
+
+    printf("No se encontró una causa con ese RUC.\n");
+}
+
+
+// Eliminar una causa de la lista buscándola por RUC
+void eliminarCausaPorRUC(struct NodoCausa **listaCausas, char *rucBuscado) {
+    struct NodoCausa *nodoActual;
+    struct NodoCausa *nodoAnterior;
+
+    nodoActual = *listaCausas;
+    nodoAnterior = NULL;
+
+    while (nodoActual != NULL) {
+        if (strcmp(nodoActual->datosCausa->RUC, rucBuscado) == 0) {
+            if (nodoAnterior == NULL) {
+                *listaCausas = nodoActual->sig;
+            } else {
+                nodoAnterior->sig = nodoActual->sig;
+            }
+            printf("Causa eliminada de la lista.\n");
+            return;
+        }
+        nodoAnterior = nodoActual;
+        nodoActual = nodoActual->sig;
+    }
+
+    printf("No se encontró una causa con ese RUC.\n");
+}
+
+
 /***
  *    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
  *    ████╗ ████║██╔════╝████╗  ██║██║   ██║
@@ -409,6 +524,7 @@ void menuMinisterioPublico(struct MinisterioPublico *ministerio) {
                 leerCadena(nombre, sizeof(nombre));
 
                 printf("RUT: ");
+                leerCadena(rut, sizeof(rut));
                 leerCadena(rut, sizeof(rut));
 
                 printf("Tipo (1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal): ");
