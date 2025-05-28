@@ -542,6 +542,48 @@ void modificarCausa(struct NodoCausa *listaCausas, char *rucBuscado, char *nueva
     printf("No se encontro una causa con ese RUC.\n");
 }
 
+/* Actualiza el estado de una causa según su RUC */
+void cambiarEstadoCausa(struct NodoCausa *listaCausas, char *rucBuscado, char *nuevoEstado) {
+    struct NodoCausa *actual;
+
+    actual = listaCausas;
+    while (actual != NULL) {
+        if (strcmp(actual->datosCausa->RUC, rucBuscado) == 0) {
+            actual->datosCausa->estado = copiarCadena(nuevoEstado);
+            printf("Estado de la causa actualizado a: %s\n", nuevoEstado);
+            return;
+        }
+        actual = actual->sig;
+    }
+
+    printf("No se encontro una causa con ese RUC.\n");
+}
+
+/* Reabre una causa si su estado actual es "archivo" o "cerrada" */
+void reAbrirCausa(struct NodoCausa *listaCausas, char *rucBuscado) {
+    struct NodoCausa *actual;
+
+    actual = listaCausas;
+
+    while (actual != NULL) {
+        if (strcmp(actual->datosCausa->RUC, rucBuscado) == 0) {
+            if (strcmp(actual->datosCausa->estado, "archivo") == 0 ||
+                strcmp(actual->datosCausa->estado, "cerrada") == 0) {
+
+                actual->datosCausa->estado = copiarCadena("abierta");
+                printf("La causa ha sido reabierta correctamente.\n");
+                return;
+                } else {
+                    printf("La causa no esta cerrada ni archivada, no se puede reabrir.\n");
+                    return;
+                }
+        }
+        actual = actual->sig;
+    }
+
+    printf("No se encontro una causa con ese RUC.\n");
+}
+
 /* Elimina una causa de la lista enlazada segun su RUC */
 void eliminarCausaPorRUC(struct NodoCausa **listaCausas, char *rucBuscado) {
     struct NodoCausa *nodoActual;
@@ -794,6 +836,102 @@ void declararPersonasPorTipo(struct NodoPersona *listaPersonas, int tipoBuscado,
  *
  */
 
+/* Menu principal para probar funcionalidades del Ministerio Publico */
+void menuMinisterioPublico(struct MinisterioPublico *ministerio) {
+    int opcion;
+    char rut[20];
+    char nombre[100];
+    char categoria[50];
+    char estado[20];
+    int tipo;
+    struct Persona *nuevaPersona;
+    struct Causa *nuevaCausa;
 
+    do {
+        printf("\n===== MENU MINISTERIO PUBLICO =====\n");
+        printf("1. Agregar persona\n");
+        printf("2. Mostrar persona por RUT\n");
+        printf("3. Modificar persona\n");
+        printf("4. Eliminar persona\n");
+        printf("5. Agregar causa\n");
+        printf("6. Mostrar causa por RUC\n");
+        printf("7. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion);
+        getchar(); /* Limpiar buffer */
+
+        if (opcion == 1) {
+            printf("Nombre: ");
+            leerCadena(nombre, sizeof(nombre));
+            printf("RUT: ");
+            leerCadena(rut, sizeof(rut));
+            printf("Tipo (1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal): ");
+            scanf("%d", &tipo);
+            getchar();
+
+            nuevaPersona = crearPersona(nombre, rut, tipo);
+            agregarPersona(&ministerio->personas, nuevaPersona);
+            printf("Persona agregada.\n");
+
+        } else if (opcion == 2) {
+            printf("Ingrese RUT a buscar: ");
+            leerCadena(rut, sizeof(rut));
+            listarPersonaPorRut(ministerio->personas, rut);
+
+        } else if (opcion == 3) {
+            printf("RUT de la persona a modificar: ");
+            leerCadena(rut, sizeof(rut));
+            printf("Nuevo nombre: ");
+            leerCadena(nombre, sizeof(nombre));
+            printf("Nuevo tipo: ");
+            scanf("%d", &tipo);
+            getchar();
+
+            modificarDatosPersona(ministerio->personas, rut, nombre, tipo);
+
+        } else if (opcion == 4) {
+            printf("RUT de la persona a eliminar: ");
+            leerCadena(rut, sizeof(rut));
+            eliminarPersonaPorRut(&ministerio->personas, rut);
+
+        } else if (opcion == 5) {
+            printf("RUC de la causa: ");
+            leerCadena(rut, sizeof(rut));
+            printf("Categoria de la causa: ");
+            leerCadena(categoria, sizeof(categoria));
+            printf("Estado (abierta o cerrada): ");
+            leerCadena(estado, sizeof(estado));
+
+            nuevaCausa = crearCausa(rut, categoria, estado);
+            agregarCausa(&ministerio->causas, nuevaCausa);
+            printf("Causa agregada.\n");
+
+        } else if (opcion == 6) {
+            printf("Ingrese RUC a buscar: ");
+            leerCadena(rut, sizeof(rut));
+            mostrarCausaPorRUC(ministerio->causas, rut);
+
+        } else if (opcion == 7) {
+            printf("Saliendo del sistema...\n");
+
+        } else {
+            printf("Opcion invalida.\n");
+        }
+
+    } while (opcion != 7);
+}
+
+/* Funcion principal del sistema */
+int main() {
+    struct MinisterioPublico ministerio;
+
+    ministerio.causas = NULL;
+    ministerio.personas = NULL;
+    ministerio.raizImputados = NULL;
+
+    menuMinisterioPublico(&ministerio);
+
+    return 0;
+}
 
 
