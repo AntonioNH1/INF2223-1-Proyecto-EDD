@@ -35,6 +35,7 @@ struct Formalizacion {
     char *antecedentes;     /* Antecedentes que sustentan el delito */
     char *fecha;            /* Fecha de la formalizacion */
     int medidaCautelar;     /* Medida cautelar (1 = prision, 2 = arraigo, etc.) */
+    struct Persona *defensor;
 };
 
 /* Nodo de la lista enlazada de causas */
@@ -88,7 +89,7 @@ struct NodoPersona {
 struct Persona {
     char *nombre;     /* Nombre completo */
     char *rut;        /* RUT unico */
-    int tipo;         /* Tipo: 1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal */
+    int tipo;         /* Tipo: 1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal, 6=Defensor */
 };
 
 /***
@@ -466,6 +467,20 @@ struct Causa *crearCausa(char *ruc, char *categoria, char *estado) {
     return nuevaCausa;
 }
 
+/* Asocia un imputado a una causa penal agregándolo a la lista de imputados */
+void asociarImputadoACausa(struct Causa *causa, struct Persona *imputado) {
+    struct NodoPersona *nuevoNodo;
+
+    /* Reservar memoria para el nodo que contendrá al imputado */
+    nuevoNodo = (struct NodoPersona *) malloc(sizeof(struct NodoPersona));
+    if (nuevoNodo == NULL) return;
+
+    /* Asignar el imputado al nodo y enlazarlo a la lista de la causa */
+    nuevoNodo->datosPersona = imputado;
+    nuevoNodo->sig = causa->imputadosAsociados;
+    causa->imputadosAsociados = nuevoNodo;
+}
+
 /* Agrega una causa a la lista de causas del Ministerio Publico */
 void agregarCausa(struct NodoCausa **listaCausas, struct Causa *nuevaCausa) {
     struct NodoCausa *nuevoNodo;
@@ -567,22 +582,23 @@ void reAbrirCausa(struct NodoCausa *listaCausas, char *rucBuscado) {
 
     while (actual != NULL) {
         if (strcmp(actual->datosCausa->RUC, rucBuscado) == 0) {
-            if (strcmp(actual->datosCausa->estado, "archivo") == 0 ||
-                strcmp(actual->datosCausa->estado, "cerrada") == 0) {
-
+            if (strcmp(actual->datosCausa->estado, "archivo") == 0 || strcmp(actual->datosCausa->estado, "cerrada") == 0) {
                 actual->datosCausa->estado = copiarCadena("abierta");
                 printf("La causa ha sido reabierta correctamente.\n");
                 return;
-                } else {
-                    printf("La causa no esta cerrada ni archivada, no se puede reabrir.\n");
-                    return;
                 }
+            else {
+                printf("La causa no esta cerrada ni archivada, no se puede reabrir.\n");
+                return;
+            }
         }
+
         actual = actual->sig;
     }
 
     printf("No se encontro una causa con ese RUC.\n");
 }
+
 
 /* Elimina una causa de la lista enlazada segun su RUC */
 void eliminarCausaPorRUC(struct NodoCausa **listaCausas, char *rucBuscado) {
@@ -652,6 +668,48 @@ void crearCarpetaInvestigativa(struct Causa *causa) {
     causa->carpetaInvestigativa = nuevaCarpeta;
 }
 
+/* Muestra todos los objetos investigativos registrados en la carpeta */
+void revisarCarpetaInvestigativa(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (carpeta->objetos == NULL) {
+        printf("\nNo hay objetos investigativos registrados.\n");
+        return;
+    }
+
+    printf("\n--- Contenido de la carpeta investigativa ---\n");
+    actual = carpeta->objetos;
+    do {
+        printf("ID: %d | Tipo: %d | Fecha: %s | RUT: %s\n",
+               actual->objeto->id,
+               actual->objeto->tipo,
+               actual->objeto->fecha,
+               actual->objeto->rut);
+        printf("Detalle: %s\n\n", actual->objeto->detalle);
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+}
+int esInterviniente(int tipoPersona) {
+    if (tipoPersona == 1 || tipoPersona == 2 || tipoPersona == 5) {
+        return 1; // Denunciante, Imputado o Fiscal
+    }
+    return 0;
+}
+
+void solicitarRevisionCarpeta(struct Persona *solicitante, struct CarpetaInvestigativa *carpeta) {
+    if (solicitante == NULL || carpeta == NULL) {
+        printf("\nSolicitud inválida.\n");
+        return;
+    }
+
+    if (esInterviniente(solicitante->tipo)) {
+        printf("\nAcceso autorizado para %s (RUT: %s).\n", solicitante->nombre, solicitante->rut);
+        revisarCarpetaInvestigativa(carpeta);
+    } else {
+        printf("\nAcceso denegado. Usted no tiene permisos para revisar la carpeta investigativa.\n");
+    }
+}
+
 /* Inserta un imputado en el arbol binario de busqueda segun su RUT */
 struct NodoImputadoABB *insertarImputadoABB(struct NodoImputadoABB *raiz, struct Persona *personaImputado) {
     struct NodoImputadoABB *nuevoNodo;
@@ -680,7 +738,7 @@ struct NodoImputadoABB *insertarImputadoABB(struct NodoImputadoABB *raiz, struct
 }
 
 /* Crea y asigna una formalizacion judicial al imputado del nodo */
-void formalizarImputado(struct NodoImputadoABB *nodo, char *delito, char *antecedentes, char *fecha, int medidaCautelar) {
+void formalizarImputado(struct NodoImputadoABB *imputados, char *delito, char *antecedentes, char *fecha, int medidaCautelar) {
     struct Formalizacion *nuevaFormalizacion;
 
     /* Reservar memoria para la formalizacion */
@@ -696,7 +754,29 @@ void formalizarImputado(struct NodoImputadoABB *nodo, char *delito, char *antece
     nuevaFormalizacion->medidaCautelar = medidaCautelar;
 
     /* Asociar formalizacion al nodo de imputado */
-    nodo->formalizacion = nuevaFormalizacion;
+    imputados->formalizacion = nuevaFormalizacion;
+}
+
+/* Inserta un nuevo imputado en el arbol ABB segun su RUT */
+struct NodoImputadoABB* insertarImputado(struct NodoImputadoABB *raizActual, struct NodoImputadoABB *nuevoImputado) {
+    int comparacion;
+
+    if (raizActual == NULL) {
+        return nuevoImputado;
+    }
+
+    comparacion = strcmp(nuevoImputado->datosImputados->datosPersona->rut,
+                         raizActual->datosImputados->datosPersona->rut);
+
+    if (comparacion < 0) {
+        raizActual->izq = insertarImputado(raizActual->izq, nuevoImputado);
+    } else if (comparacion > 0) {
+        raizActual->der = insertarImputado(raizActual->der, nuevoImputado);
+    } else {
+        printf("Ya existe un imputado con ese RUT.\n");
+    }
+
+    return raizActual;
 }
 
 /* Registra un nuevo objeto investigativo en la lista circular de la carpeta */
@@ -737,6 +817,113 @@ void agregarObjetoInvestigativo(struct CarpetaInvestigativa *carpeta, int tipo, 
     }
 }
 
+/* Formaliza a una persona como imputado, asignándole un defensor y registrando la formalización en el ABB y carpeta */
+void formalizarConDefensor(struct MinisterioPublico *ministerio,
+                           struct Causa *causa,
+                           char *nombreImputado, char *rutImputado,
+                           char *nombreDefensor, char *rutDefensor,
+                           char *delito, char *antecedentes,
+                           char *fecha, int medidaCautelar) {
+    struct Persona *imputado;
+    struct Persona *defensor;
+    struct Formalizacion *infoFormalizacion;
+    struct NodoImputadoABB *nuevoNodo;
+    struct NodoPersona *nuevoNodoPersona;
+
+    /* Crear la persona imputada con tipo 2 */
+    imputado = crearPersona(nombreImputado, rutImputado, 2);
+
+    /* Crear la persona defensor con tipo 6 */
+    defensor = crearPersona(nombreDefensor, rutDefensor, 6);
+
+    /* Reservar memoria y llenar los datos de la formalización */
+    infoFormalizacion = (struct Formalizacion *) malloc(sizeof(struct Formalizacion));
+    if (infoFormalizacion == NULL) {
+        printf("Error de memoria para formalizacion.\n");
+        return;
+    }
+    infoFormalizacion->delito = copiarCadena(delito);
+    infoFormalizacion->antecedentes = copiarCadena(antecedentes);
+    infoFormalizacion->fecha = copiarCadena(fecha);
+    infoFormalizacion->medidaCautelar = medidaCautelar;
+    infoFormalizacion->defensor = defensor;
+
+    /* Crear nodo del ABB para el imputado */
+    nuevoNodo = (struct NodoImputadoABB *) malloc(sizeof(struct NodoImputadoABB));
+    if (nuevoNodo == NULL) {
+        printf("Error de memoria para nodo imputado.\n");
+        return;
+    }
+
+    /* Crear nodo de lista simple para representar la persona en la causa */
+    nuevoNodoPersona = (struct NodoPersona *) malloc(sizeof(struct NodoPersona));
+    if (nuevoNodoPersona == NULL) {
+        printf("Error de memoria para nodo persona.\n");
+        return;
+    }
+
+    /* Asociar persona imputada al nodo y dejarlo listo */
+    nuevoNodoPersona->datosPersona = imputado;
+    nuevoNodoPersona->sig = NULL;
+    nuevoNodo->datosImputados = nuevoNodoPersona;
+    nuevoNodo->formalizacion = infoFormalizacion;
+    nuevoNodo->izq = NULL;
+    nuevoNodo->der = NULL;
+
+    /* Insertar imputado en ABB del Ministerio Público */
+    ministerio->raizImputados = insertarImputado(ministerio->raizImputados, nuevoNodo);
+
+    /* Asociar el imputado a la causa penal */
+    nuevoNodoPersona->sig = causa->imputadosAsociados;
+    causa->imputadosAsociados = nuevoNodoPersona;
+
+    /* Registrar la formalización como resolución judicial (tipo 5) en la carpeta */
+    agregarObjetoInvestigativo(causa->carpetaInvestigativa, 5, rutImputado, "Audiencia de formalizacion realizada.", fecha);
+
+    printf("Formalizacion registrada y defensor asignado.\n");
+}
+
+/* Asigna un defensor a una formalización existente */
+void asignarDefensor(struct Formalizacion *formalizacion, struct Persona *defensor) {
+    if (formalizacion != NULL && defensor != NULL) {
+        defensor->tipo = 6;
+        formalizacion->defensor = defensor;
+        printf("Defensor asignado correctamente.\n");
+    } else {
+        printf("Error: Formalización o defensor inválido.\n");
+    }
+}
+
+/* Muestra los datos de la formalización judicial de un imputado */
+void mostrarFormalizacion(struct NodoImputadoABB *imputados) {
+    if (imputados == NULL || imputados->formalizacion == NULL) {
+        printf("No hay formalización registrada para este imputado.\n");
+        return;
+    }
+
+    struct Formalizacion *formalizacion = imputados->formalizacion;
+    printf("\n--- Datos de Formalización ---\n");
+    printf("Delito: %s\n", formalizacion->delito);
+    printf("Fecha: %s\n", formalizacion->fecha);
+    printf("Antecedentes: %s\n", formalizacion->antecedentes);
+    printf("Medida Cautelar: %d\n", formalizacion->medidaCautelar);
+    if (formalizacion->defensor != NULL) {
+        printf("Defensor: %s (RUT: %s)\n", formalizacion->defensor->nombre, formalizacion->defensor->rut);
+    }
+    printf("-----------------------------\n");
+}
+
+/* Cambia la medida cautelar asignada en la formalización */
+void cambiarMedidaCautelar(struct NodoImputadoABB *imputados, int nuevaMedida) {
+    if (imputados == NULL || imputados->formalizacion == NULL) {
+        printf("No se puede cambiar la medida cautelar. Falta formalización.\n");
+        return;
+    }
+
+    imputados->formalizacion->medidaCautelar = nuevaMedida;
+    printf("Medida cautelar actualizada a %d\n", nuevaMedida);
+}
+
 /* Cambia el estado de una causa segun la decision del fiscal */
 void cerrarInvestigacion(struct Causa *causa, int decision) {
     if (decision == 1) {
@@ -760,31 +947,40 @@ void aplicarMedidaProteccion(struct CarpetaInvestigativa *carpeta, char *rut, ch
     agregarObjetoInvestigativo(carpeta, 4, rut, descripcion, fecha);
 }
 
+/* Registra una citacion como declaracion (tipo 4) */
+void registrarCitacion(struct CarpetaInvestigativa *carpeta, char *rut, char *fecha, char *detalle) {
+    agregarObjetoInvestigativo(carpeta, 4, rut, detalle, fecha);
+    printf("Citacion registrada en la carpeta investigativa.\n");
+}
+
+/* Simula una citacion como declaracion en la carpeta */
+void citarImputado(struct CarpetaInvestigativa *carpeta, char *rutImputado, char *fecha, char *detalle) {
+    agregarObjetoInvestigativo(carpeta, 4, rutImputado, detalle, fecha);
+    printf("Citación registrada para el imputado %s.\n", rutImputado);
+}
+
+/* Registra una orden de detencion como resolucion judicial */
+void emitirOrdenDetencion(struct CarpetaInvestigativa *carpeta, char *rutImputado, char *fecha, char *detalle) {
+    agregarObjetoInvestigativo(carpeta, 5, rutImputado, detalle, fecha);
+    printf("Orden de detención registrada para el imputado %s.\n", rutImputado);
+}
+
+/* Registra una orden de detencion como resolucion judicial (tipo 5) */
+void registrarOrdenDetencion(struct CarpetaInvestigativa *carpeta, char *rut, char *fecha, char *detalle) {
+    agregarObjetoInvestigativo(carpeta, 5, rut, detalle, fecha);
+    printf("Orden de detencion registrada en la carpeta investigativa.\n");
+}
+
+/* Registra una audiencia de formalizacion como resolucion judicial en la carpeta investigativa */
+void registrarAudienciaFormalizacion(struct CarpetaInvestigativa *carpeta, char *rut, char *fecha, char *detalle) {
+    /* Insertar el objeto investigativo de tipo 5 (resolucion judicial) */
+    agregarObjetoInvestigativo(carpeta, 5, rut, detalle, fecha);
+    printf("Audiencia de formalizacion registrada en la carpeta.\n");
+}
+
 /* Registra una diligencia adicional como objeto investigativo en la carpeta */
 void solicitarDiligencia(struct CarpetaInvestigativa *carpeta, char *rutSolicitante, char *descripcion, char *fecha) {
     agregarObjetoInvestigativo(carpeta, 3, rutSolicitante, descripcion, fecha);
-}
-
-/* Muestra todos los objetos investigativos registrados en la carpeta */
-void revisarCarpetaInvestigativa(struct CarpetaInvestigativa *carpeta) {
-    struct NodoObjetoInvestigativo *actual;
-
-    if (carpeta->objetos == NULL) {
-        printf("\nNo hay objetos investigativos registrados.\n");
-        return;
-    }
-
-    printf("\n--- Contenido de la carpeta investigativa ---\n");
-    actual = carpeta->objetos;
-    do {
-        printf("ID: %d | Tipo: %d | Fecha: %s | RUT: %s\n",
-               actual->objeto->id,
-               actual->objeto->tipo,
-               actual->objeto->fecha,
-               actual->objeto->rut);
-        printf("Detalle: %s\n\n", actual->objeto->detalle);
-        actual = actual->sig;
-    } while (actual != carpeta->objetos);
 }
 
 /* Muestra todas las pruebas registradas en la carpeta investigativa */
