@@ -1309,89 +1309,197 @@ void generarReporteEstadoCausas(struct NodoCausa *listaCausas) {
  *
  */
 
-/* Menu principal para probar funcionalidades del Ministerio Publico */
-void menuMinisterioPublico(struct MinisterioPublico *ministerio) {
-    int opcion;
-    char rut[20];
-    char nombre[100];
-    char categoria[50];
-    char estado[20];
-    int tipo;
-    struct Persona *nuevaPersona;
-    struct Causa *nuevaCausa;
 
+/* Menu para VICTIMA - solo consulta y agrega antecedentes */
+void menuVictima(struct MinisterioPublico *ministerio, struct Persona *victima) {
+    int opcion;
     do {
-        printf("\n===== MENU MINISTERIO PUBLICO =====\n");
-        printf("1. Agregar persona\n");
-        printf("2. Mostrar persona por RUT\n");
-        printf("3. Modificar persona\n");
-        printf("4. Eliminar persona\n");
-        printf("5. Agregar causa\n");
-        printf("6. Mostrar causa por RUC\n");
-        printf("7. Salir\n");
+        printf("\n===== MENU VICTIMA =====\n");
+        printf("1. Registrar denuncia\n");
+        printf("2. Revisar carpeta investigativa\n");
+        printf("3. Agregar prueba\n");
+        printf("4. Salir\n");
         printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
-        getchar(); /* Limpiar buffer */
+        getchar();
 
-        if (opcion == 1) {
-            printf("Nombre: ");
-            leerCadena(nombre, sizeof(nombre));
-            printf("RUT: ");
-            leerCadena(rut, sizeof(rut));
-            printf("Tipo (1=Denunciante, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal): ");
-            scanf("%d", &tipo);
-            getchar();
+        switch (opcion) {
+            case 1:
+                registrarDenunciaVictima(ministerio, victima);
+                break;
+            case 2:
+                revisarCarpetaVictima(ministerio, victima);
+                break;
+            case 3:
+                agregarPruebaVictima(ministerio, victima);
+                break;
+            case 4:
+                break;
+            default:
+                printf("Opcion invalida.\n");
+        }
+    } while (opcion != 4);
+}
 
-            nuevaPersona = crearPersona(nombre, rut, tipo);
-            agregarPersona(&ministerio->personas, nuevaPersona);
-            printf("Persona agregada.\n");
+/* Menu para IMPUTADO - solo consulta de carpeta */
+void menuImputado(struct MinisterioPublico *ministerio, struct Persona *imputado) {
+    int opcion;
+    do {
+        printf("\n===== MENU IMPUTADO =====\n");
+        printf("1. Ver carpeta asociada\n");
+        printf("2. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion);
+        getchar();
 
-        } else if (opcion == 2) {
-            printf("Ingrese RUT a buscar: ");
-            leerCadena(rut, sizeof(rut));
-            listarPersonaPorRut(ministerio->personas, rut);
+        switch (opcion) {
+            case 1:
+                mostrarCarpetasDeImputado(ministerio, imputado);
+                break;
+            case 2:
+                break;
+            default:
+                printf("Opcion invalida.\n");
+        }
+    } while (opcion != 2);
+}
 
-        } else if (opcion == 3) {
-            printf("RUT de la persona a modificar: ");
-            leerCadena(rut, sizeof(rut));
-            printf("Nuevo nombre: ");
-            leerCadena(nombre, sizeof(nombre));
-            printf("Nuevo tipo: ");
-            scanf("%d", &tipo);
-            getchar();
+/* Menu para TESTIGO - consulta basica (si se requiere) */
+void menuTestigo(struct MinisterioPublico *ministerio, struct Persona *testigo) {
+    int opcion;
+    do {
+        printf("\n===== MENU TESTIGO =====\n");
+        printf("1. Ver citaciones personales\n");
+        printf("2. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion);
+        getchar();
 
-            modificarDatosPersona(ministerio->personas, rut, nombre, tipo);
+        switch (opcion) {
+            case 1:
+                mostrarCitacionesTestigo(ministerio, testigo);
+                break;
+            case 2:
+                break;
+            default:
+                printf("Opcion invalida.\n");
+        }
+    } while (opcion != 2);
+}
 
-        } else if (opcion == 4) {
-            printf("RUT de la persona a eliminar: ");
-            leerCadena(rut, sizeof(rut));
-            eliminarPersonaPorRut(&ministerio->personas, rut);
+/* Menu para FISCAL - acceso amplio, pero sin automatizar decisiones */
+void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
+    int opcion;
+    do {
+        printf("\n===== MENU FISCAL =====\n");
+        printf("1. Ver causas asignadas\n");
+        printf("2. Agregar diligencia\n");
+        printf("3. Formalizar imputado\n");
+        printf("4. Cambiar estado de causa\n");
+        printf("5. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion);
+        getchar();
 
-        } else if (opcion == 5) {
-            printf("RUC de la causa: ");
-            leerCadena(rut, sizeof(rut));
-            printf("Categoria de la causa: ");
-            leerCadena(categoria, sizeof(categoria));
-            printf("Estado (abierta o cerrada): ");
-            leerCadena(estado, sizeof(estado));
+        switch (opcion) {
+            case 1:
+                listarCausas(ministerio->causas);
+                break;
+            case 2:
+                agregarDiligenciaFiscal(ministerio);
+                break;
+            case 3:
+                ejecutarFormalizacionFiscal(ministerio);
+                break;
+            case 4:
+                cambiarEstadoDesdeFiscal(ministerio);
+                break;
+            case 5:
+                break;
+            default:
+                printf("Opcion invalida.\n");
+        }
+    } while (opcion != 5);
+}
 
-            nuevaCausa = crearCausa(rut, categoria, estado);
-            agregarCausa(&ministerio->causas, nuevaCausa);
-            printf("Causa agregada.\n");
+/* Menu para DEFENSOR - acceso solo a formalizaciones del defendido */
+void menuDefensor(struct MinisterioPublico *ministerio, struct Persona *defensor) {
+    int opcion;
+    do {
+        printf("\n===== MENU DEFENSOR =====\n");
+        printf("1. Ver formalizaciones asignadas\n");
+        printf("2. Salir\n");
+        printf("Seleccione una opcion: ");
+        scanf("%d", &opcion);
+        getchar();
 
-        } else if (opcion == 6) {
-            printf("Ingrese RUC a buscar: ");
-            leerCadena(rut, sizeof(rut));
-            mostrarCausaPorRUC(ministerio->causas, rut);
+        switch (opcion) {
+            case 1:
+                mostrarFormalizacionesDefensor(ministerio, defensor);
+                break;
+            case 2:
+                break;
+            default:
+                printf("Opcion invalida.\n");
+        }
+    } while (opcion != 2);
+}
 
-        } else if (opcion == 7) {
-            printf("Saliendo del sistema...\n");
+/* Menu principal que invoca los submenús según el tipo de usuario */
+void menuPrincipal(struct MinisterioPublico *ministerio) {
+    struct Persona *usuario;
+    struct Persona *verificada;
 
-        } else {
-            printf("Opcion invalida.\n");
+    char nombre[100];
+    char rut[20];
+    int tipo;
+
+    printf("--> Ingrese su nombre: ");
+    leerCadena(nombre, sizeof(nombre));
+    printf("--> Ingrese su RUT: ");
+    leerCadena(rut, sizeof(rut));
+    printf("--> Ingrese su tipo (1=Victima, 2=Imputado, 3=Testigo, 5=Fiscal, 6=Defensor): ");
+    scanf("%d", &tipo);
+    getchar();
+
+    /* Validar existencia del usuario en la lista */
+    verificada = buscarPersonaPorRut(ministerio->personas, rut);
+    if (verificada == NULL || strcmp(verificada->nombre, nombre) != 0 || verificada->tipo != tipo) {
+        if (verificada == NULL) {
+            printf("--> Usuario no registrado o datos incorrectos.\n");
+            return;
         }
 
-    } while (opcion != 7);
+        usuario = (struct Persona *) malloc(sizeof(struct Persona));
+        if (usuario == NULL) {
+            printf("No se pudo asignar memoria para el usuario.");
+            return;
+        }
+        usuario->nombre = copiarCadena(nombre);
+        usuario->rut = copiarCadena(rut);
+        usuario->tipo = tipo;
+
+        switch (usuario->tipo) {
+            case 1:
+                menuVictima(ministerio, usuario);
+            break;
+            case 2:
+                menuImputado(ministerio, usuario);
+            break;
+            case 3:
+                menuTestigo(ministerio, usuario);
+            break;
+            case 5:
+                menuFiscal(ministerio, usuario);
+            break;
+            case 6:
+                menuDefensor(ministerio, usuario);
+            break;
+            default:
+                printf("--> Tipo de usuario no valido o no implementado.\n");
+            break;
+        }
+    }
 }
 
 /* Funcion principal del sistema */
@@ -1402,7 +1510,7 @@ int main() {
     ministerio.personas = NULL;
     ministerio.raizImputados = NULL;
 
-    menuMinisterioPublico(&ministerio);
+    menuPrincipal(&ministerio);
 
     return 0;
 }
