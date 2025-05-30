@@ -161,7 +161,7 @@ struct Persona *buscarPersonaPorRut(struct NodoPersona *listaPersonas, char *rut
     return NULL;
 }
 
-/* ======================== PUNTO 1: RECEPCIÓN DE LA DENUNCIA ======================== */
+/* ======================== PUNTO 1: RECEPCION DE LA DENUNCIA ======================== */
 
 /* Crea una nueva causa penal con RUC, categoria y estado */
 struct Causa *crearCausa(char *ruc, char *categoria, char *estado) {
@@ -595,7 +595,7 @@ void revisarCarpetaInvestigativa(struct CarpetaInvestigativa *carpeta) {
 
 void solicitarRevisionCarpeta(struct Persona *solicitante, struct CarpetaInvestigativa *carpeta) {
     if (solicitante == NULL || carpeta == NULL) {
-        printf("\nSolicitud inválida.\n");
+        printf("\nSolicitud invalida.\n");
         return;
     }
 
@@ -886,19 +886,19 @@ void asignarDefensor(struct Formalizacion *formalizacion, struct Persona *defens
         formalizacion->defensor = defensor;
         printf("Defensor asignado correctamente.\n");
     } else {
-        printf("Error: Formalización o defensor inválido.\n");
+        printf("Error: Formalizacion o defensor invalido.\n");
     }
 }
 
-/* Muestra los datos de la formalización judicial de un imputado */
+/* Muestra los datos de la formalizacion judicial de un imputado */
 void mostrarFormalizacion(struct NodoImputadoABB *imputados) {
     if (imputados == NULL || imputados->formalizacion == NULL) {
-        printf("No hay formalización registrada para este imputado.\n");
+        printf("No hay formalizacion registrada para este imputado.\n");
         return;
     }
 
     struct Formalizacion *formalizacion = imputados->formalizacion;
-    printf("\n--- Datos de Formalización ---\n");
+    printf("\n--- Datos de Formalizacion ---\n");
     printf("Delito: %s\n", formalizacion->delito);
     printf("Fecha: %s\n", formalizacion->fecha);
     printf("Antecedentes: %s\n", formalizacion->antecedentes);
@@ -912,7 +912,7 @@ void mostrarFormalizacion(struct NodoImputadoABB *imputados) {
 /* Cambia la medida cautelar asignada en la formalización */
 void cambiarMedidaCautelar(struct NodoImputadoABB *imputados, int nuevaMedida) {
     if (imputados == NULL || imputados->formalizacion == NULL) {
-        printf("No se puede cambiar la medida cautelar. Falta formalización.\n");
+        printf("No se puede cambiar la medida cautelar. Falta formalizacion.\n");
         return;
     }
 
@@ -930,7 +930,7 @@ void solicitarDiligencia(struct CarpetaInvestigativa *carpeta, char *rutSolicita
 /* Registra una inspección como diligencia tipo 3 en la carpeta investigativa */
 void registrarInspeccion(struct CarpetaInvestigativa *carpeta, char *rut, char *descripcion, char *fecha) {
     agregarObjetoInvestigativo(carpeta, 3, rut, descripcion, fecha);
-    printf("Inspección registrada correctamente.\n");
+    printf("Inspeccion registrada correctamente.\n");
 }
 
 /* Registra una citacion como declaracion (tipo 4) */
@@ -942,7 +942,7 @@ void registrarCitacion(struct CarpetaInvestigativa *carpeta, char *rut, char *fe
 /* Simula una citacion como declaracion en la carpeta */
 void citarImputado(struct CarpetaInvestigativa *carpeta, char *rutImputado, char *fecha, char *detalle) {
     agregarObjetoInvestigativo(carpeta, 4, rutImputado, detalle, fecha);
-    printf("Citación registrada para el imputado %s.\n", rutImputado);
+    printf("Citacion registrada para el imputado %s.\n", rutImputado);
 }
 
 /* Registra un peritaje como objeto tipo 2 en la carpeta investigativa */
@@ -970,7 +970,7 @@ void registrarOrdenDetencion(struct CarpetaInvestigativa *carpeta, char *rut, ch
 /* Registra una orden de detencion como resolucion judicial */
 void emitirOrdenDetencion(struct CarpetaInvestigativa *carpeta, char *rutImputado, char *fecha, char *detalle) {
     agregarObjetoInvestigativo(carpeta, 5, rutImputado, detalle, fecha);
-    printf("Orden de detención registrada para el imputado %s.\n", rutImputado);
+    printf("Orden de detencion registrada para el imputado %s.\n", rutImputado);
 }
 
 /* Registra una audiencia de formalizacion como resolucion judicial en la carpeta investigativa */
@@ -1044,7 +1044,7 @@ void proponerSobreseimientoDefinitivo(struct Causa *causa) {
         return;
     }
     causa->estado = copiarCadena("sobreseimiento definitivo");
-    printf("La causa ha sido sobreseída de forma definitiva.\n");
+    printf("La causa ha sido sobreseida de forma definitiva.\n");
 }
 
 /* Marca la causa como sobreseída de forma temporal (Art. 251 CPP) */
@@ -1053,7 +1053,7 @@ void proponerSobreseimientoTemporal(struct Causa *causa) {
         return;
     }
     causa->estado = copiarCadena("sobreseimiento temporal");
-    printf("La causa ha sido sobreseída de forma temporal.\n");
+    printf("La causa ha sido sobreseida de forma temporal.\n");
 }
 
 /* ======================== PUNTO 6: JUICIO ORAL, SENTENCIAS Y RESOLUCION ======================== */
