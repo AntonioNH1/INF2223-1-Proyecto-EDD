@@ -77,6 +77,7 @@ struct ObjetoInvestigativo {
     char *rut;           /* RUT de la persona que lo genero */
     char *detalle;       /* Descripcion del objeto */
     int tipo;            /* Tipo de objeto (1=Denuncia, 2=Prueba, etc.) */
+    int sentenciaFinal;  /* 1 si es sentencia final, 0 si no lo es */
 };
 
 /* Nodo de lista simple que almacena personas */
@@ -328,6 +329,11 @@ void crearCarpetaInvestigativa(struct Causa *causa) {
 /* Registra una denuncia dentro del arreglo de la carpeta investigativa */
 void registrarDenuncia(struct CarpetaInvestigativa *carpeta, char *rutDenunciante, char *descripcion, char *fecha, int id) {
     struct ObjetoInvestigativo *nuevaDenuncia;
+
+    if (carpeta == NULL || carpeta->totalDenuncias >= MAX_DENUNCIAS) {
+        printf("Error: Carpeta no valida o limite de denuncias alcanzado.\n");
+        return;
+    }
 
     /* Reservar memoria para la denuncia */
     nuevaDenuncia = (struct ObjetoInvestigativo *) malloc(sizeof(struct ObjetoInvestigativo));
@@ -996,17 +1002,13 @@ void presentarPruebas(struct CarpetaInvestigativa *carpeta) {
 
 /* ======================== PUNTO 5: CIERRE INVESTIGACION Y ACUSACION ======================== */
 
-/* Cambia el estado de una causa segun la decision del fiscal */
-void cerrarInvestigacion(struct Causa *causa, int decision) {
-    if (decision == 1) {
-        causa->estado = copiarCadena("acusacion");
-    } else if (decision == 2) {
-        causa->estado = copiarCadena("archivo");
-    } else if (decision == 3) {
-        causa->estado = copiarCadena("suspension condicional");
-    } else {
-        causa->estado = copiarCadena("cerrada");
+/* Cambia el estado de una causa según la decisión del usuario */
+void cerrarInvestigacion(struct Causa *causa, char *nuevoEstado) {
+    if (causa == NULL) {
+        return;
     }
+    causa->estado = copiarCadena(nuevoEstado);
+    printf("La causa ha sido actualizada al estado: %s\n", nuevoEstado);
 }
 
 /* Cambia el estado de una causa a "no perseverar" según decisión del fiscal */
@@ -1026,17 +1028,10 @@ void reAbrirCausa(struct NodoCausa *listaCausas, char *rucBuscado) {
 
     while (actual != NULL) {
         if (strcmp(actual->datosCausa->RUC, rucBuscado) == 0) {
-            if (strcmp(actual->datosCausa->estado, "archivo") == 0 || strcmp(actual->datosCausa->estado, "cerrada") == 0) {
-                actual->datosCausa->estado = copiarCadena("abierta");
-                printf("La causa ha sido reabierta correctamente.\n");
-                return;
-                }
-            else {
-                printf("La causa no esta cerrada ni archivada, no se puede reabrir.\n");
-                return;
-            }
+            actual->datosCausa->estado = copiarCadena("abierta");
+            printf("La causa ha sido reabierta correctamente.\n");
+            return;
         }
-
         actual = actual->sig;
     }
 
@@ -1061,7 +1056,194 @@ void proponerSobreseimientoTemporal(struct Causa *causa) {
     printf("La causa ha sido sobreseída de forma temporal.\n");
 }
 
-/* ======================== FUNCIONES EXTRA ======================== */
+/* ======================== PUNTO 6: JUICIO ORAL, SENTENCIAS Y RESOLUCION ======================== */
+
+void registrarSentenciaFinal(struct CarpetaInvestigativa *carpeta, char *rutImputado, char *fecha, int tipoSentencia) {
+    struct ObjetoInvestigativo *sentencia;
+    char *detalle;
+    int id;
+
+    if (carpeta == NULL) {
+        printf("Carpeta no valida.\n");
+        return;
+    }
+
+    id = carpeta->totalDenuncias + 1;
+
+    if (tipoSentencia == 1) {
+        detalle = copiarCadena("Sentencia condenatoria emitida por el tribunal.");
+    } else if (tipoSentencia == 2) {
+        detalle = copiarCadena("Sentencia absolutoria emitida por el tribunal.");
+    } else {
+        printf("Tipo de sentencia no valido.\n");
+        return;
+    }
+
+    sentencia = crearObjetoInvestigativo(id, fecha, rutImputado, detalle, 5);
+    if (sentencia == NULL) {
+        printf("Error al crear la sentencia.\n");
+        return;
+    }
+
+    sentencia->sentenciaFinal = 1;
+    agregarObjeto(carpeta, sentencia);
+
+    printf("Sentencia registrada correctamente.\n");
+}
+
+/* Lista todas las resoluciones judiciales (tipo 5) contenidas en la carpeta investigativa */
+void listarResolucionesJudiciales(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        printf("No hay resoluciones judiciales registradas.\n");
+        return;
+    }
+
+    printf("\n--- Resoluciones Judiciales ---\n");
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 5) {
+            printf("Fecha: %s | RUT: %s\n", actual->objeto->fecha, actual->objeto->rut);
+            printf("Detalle: %s\n\n", actual->objeto->detalle);
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+}
+
+/* Simula la realizacion de un juicio oral mostrando pruebas y testigos */
+void realizarJuicioOral(struct Causa *causa) {
+    struct NodoPersona *testigoActual;
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL) {
+        printf("No hay causa o carpeta disponible para el juicio oral.\n");
+        return;
+    }
+
+    printf("\n===== JUICIO ORAL =====\n");
+    printf("Fiscal a cargo: %s\n", causa->fiscalEncargado != NULL ? causa->fiscalEncargado->nombre : "No asignado");
+
+    /* Mostrar pruebas */
+    presentarPruebas(causa->carpetaInvestigativa);
+
+    /* Declaracion de testigos */
+    printf("\n--- Testigos ---\n");
+    testigoActual = causa->testigos;
+    while (testigoActual != NULL) {
+        printf("Nombre: %s | RUT: %s\n", testigoActual->datosPersona->nombre, testigoActual->datosPersona->rut);
+        testigoActual = testigoActual->sig;
+    }
+
+    printf("\n===== FIN DEL JUICIO ORAL =====\n");
+}
+
+    /* Lista solo las sentencias finales registradas en la carpeta investigativa */
+    void listarSentenciasFinales(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        printf("No hay sentencias finales registradas.\n");
+        return;
+    }
+
+    printf("\n--- Sentencias Finales Registradas ---\n");
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 5 && actual->objeto->sentenciaFinal == 1) {
+            printf("Fecha: %s | RUT: %s\n", actual->objeto->fecha, actual->objeto->rut);
+            printf("Detalle: %s\n\n", actual->objeto->detalle);
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+}
+
+/* ======================== PUNTO 7: PROTECCION DE VICTIMAS Y TESTIGOS ======================== */
+
+/* Ejecuta la sentencia final de una causa si existe, y actualiza su estado */
+void ejecutarSentenciaFinal(struct Causa *causa, char *fechaEjecucion) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (causa == NULL || causa->carpetaInvestigativa == NULL) {
+        printf("Causa o carpeta investigativa no valida.\n");
+        return;
+    }
+
+    actual = causa->carpetaInvestigativa->objetos;
+    if (actual == NULL) {
+        printf("No hay resoluciones en la carpeta.\n");
+        return;
+    }
+
+    do {
+        if (actual->objeto->tipo == 5 && actual->objeto->sentenciaFinal == 1) {
+            causa->estado = copiarCadena("cerrada");
+            agregarObjetoInvestigativo(causa->carpetaInvestigativa, 5, actual->objeto->rut, "Sentencia ejecutada, causa cerrada.", fechaEjecucion);
+            printf("Sentencia ejecutada. Causa marcada como cerrada.\n");
+            return;
+        }
+        actual = actual->sig;
+    } while (actual != causa->carpetaInvestigativa->objetos);
+
+    printf("No se encontro una sentencia final para ejecutar.\n");
+}
+
+/* Archiva una causa ya cerrada, registrando la resolucion en la carpeta investigativa */
+void archivarCausa(struct Causa *causa, char *fechaArchivo) {
+    if (causa == NULL || causa->carpetaInvestigativa == NULL) {
+        printf("Causa o carpeta investigativa no valida.\n");
+        return;
+    }
+
+    if (strcmp(causa->estado, "cerrada") != 0) {
+        printf("La causa no esta cerrada. No se puede archivar.\n");
+        return;
+    }
+
+    causa->estado = copiarCadena("archivo");
+    agregarObjetoInvestigativo(causa->carpetaInvestigativa, 5, "-", "Causa archivada tras ejecucion de sentencia.", fechaArchivo);
+    printf("La causa ha sido archivada correctamente.\n");
+}
+
+/* Verifica si la carpeta investigativa contiene al menos una sentencia final */
+int tieneSentenciaFinal(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        return 0;
+    }
+
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 5 && actual->objeto->sentenciaFinal == 1) {
+            return 1;
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+
+    return 0;
+}
+
+/* Muestra el historial de resoluciones judiciales de la causa */
+void mostrarHistorialResoluciones(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        printf("No hay resoluciones judiciales registradas.\n");
+        return;
+    }
+
+    printf("\n--- Historial de Resoluciones Judiciales ---\n");
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 5) {
+            printf("Fecha: %s | RUT: %s\n", actual->objeto->fecha, actual->objeto->rut);
+            printf("Detalle: %s\n\n", actual->objeto->detalle);
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+}
+
+/* ======================== FUNCIONES MENU ======================== */
 
 /* Muestra a todas las personas del tipo especificado en la lista */
 void declararPersonasPorTipo(struct NodoPersona *listaPersonas, int tipoBuscado, char *titulo) {
@@ -1224,5 +1406,6 @@ int main() {
 
     return 0;
 }
+
 
 
