@@ -161,6 +161,31 @@ struct Persona *buscarPersonaPorRut(struct NodoPersona *listaPersonas, char *rut
     return NULL;
 }
 
+/* Busca manualmente si una subcadena existe dentro de otra */
+int contieneSubcadena(char *cadena, char *subcadena) {
+    int i, j, longitudCadena, longitudSub;
+
+    if (cadena == NULL || subcadena == NULL) {
+        return 0;
+    }
+
+    longitudCadena = strlen(cadena);
+    longitudSub = strlen(subcadena);
+
+    for (i = 0; i <= longitudCadena - longitudSub; i++) {
+        for (j = 0; j < longitudSub; j++) {
+            if (cadena[i + j] != subcadena[j]) {
+                break;
+            }
+        }
+        if (j == longitudSub) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* ======================== PUNTO 1: RECEPCION DE LA DENUNCIA ======================== */
 
 /* Crea una nueva causa penal con RUC, categoria y estado */
@@ -1048,6 +1073,30 @@ void aplicarMedidaProteccion(struct CarpetaInvestigativa *carpeta, char *rut, ch
     agregarObjetoInvestigativo(carpeta, 4, rut, descripcion, fecha);
 }
 
+/* Cuenta la cantidad de medidas de proteccion activas registradas en la carpeta investigativa */
+int contarMedidasProteccionActivas(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+    int contador;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        return 0;
+    }
+
+    contador = 0;
+
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 4) {
+            if (contieneSubcadena(actual->objeto->detalle, "proteccion")) {
+                contador++;
+            }
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+
+    return contador;
+}
+
 /* Registra una sentencia como objeto investigativo en la carpeta */
 void registrarSentencia(struct CarpetaInvestigativa *carpeta, char *rut, char *detalle, char *fecha) {
     if (carpeta == NULL) {
@@ -1274,6 +1323,30 @@ void realizarJuicioOral(struct Causa *causa) {
     } while (actual != carpeta->objetos);
 }
 
+/* Cuenta la cantidad de sentencias finales de tipo condenatoria en la carpeta investigativa */
+int contarSentenciasCondenatorias(struct CarpetaInvestigativa *carpeta) {
+    struct NodoObjetoInvestigativo *actual;
+    int contador;
+
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        return 0;
+    }
+    contador = 0;
+
+    actual = carpeta->objetos;
+
+    do {
+        if (actual->objeto->tipo == 5 && actual->objeto->sentenciaFinal == 1) {
+            if (contieneSubcadena(actual->objeto->detalle, "condenatoria")) {
+                contador++;
+            }
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+
+    return contador;
+}
+
 /* ======================== PUNTO 7: PROTECCION DE VICTIMAS Y TESTIGOS ======================== */
 
 /* Ejecuta la sentencia final de una causa si existe, y actualiza su estado */
@@ -1416,6 +1489,22 @@ void generarReporteEstadoCausas(struct NodoCausa *listaCausas) {
     printf("=======================================\n");
 }
 
+/* Cuenta cuántas causas están archivadas provisionalmente */
+int contarArchivosProvisionales(struct NodoCausa *listaCausas) {
+    int contador;
+    struct NodoCausa *actual;
+
+    contador = 0;
+    actual = listaCausas;
+    while (actual != NULL) {
+        if (strcmp(actual->datosCausa->estado, "archivo provisional") == 0) {
+            contador++;
+        }
+        actual = actual->sig;
+    }
+    return contador;
+}
+
 /***
  *    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
  *    ████╗ ████║██╔════╝████╗  ██║██║   ██║
@@ -1425,7 +1514,6 @@ void generarReporteEstadoCausas(struct NodoCausa *listaCausas) {
  *    ╚═╝     ╚═╝╚══════╝╚═╝  ╚═══╝ ╚═════╝
  *
  */
-
 
 /* Menu para VICTIMA - solo consulta y agrega antecedentes */
 void menuVictima(struct MinisterioPublico *ministerio, struct Persona *victima) {
