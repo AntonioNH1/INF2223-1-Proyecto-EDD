@@ -1773,6 +1773,31 @@ void listarResolucionesPorImputado(struct CarpetaInvestigativa *carpeta, char *r
     } while (actual != carpeta->objetos);
 }
 
+void listarDeclaracionesDeTestigos(struct CarpetaInvestigativa *carpeta, struct NodoPersona *testigos) {
+    struct NodoObjetoInvestigativo *actual;
+    struct NodoPersona *testigo;
+
+    if (carpeta == NULL || carpeta->objetos == NULL || testigos == NULL) {
+        printf("No hay declaraciones o testigos disponibles.\n");
+        return;
+    }
+
+    printf("=== Declaraciones de testigos ===\n");
+    testigo = testigos;
+    while (testigo != NULL) {
+        actual = carpeta->objetos;
+        do {
+            if (actual->objeto->tipo == 4 &&
+                strcmp(actual->objeto->rut, testigo->datosPersona->rut) == 0) {
+                printf("Testigo: %s | Fecha: %s\n", testigo->datosPersona->nombre, actual->objeto->fecha);
+                printf("Detalle: %s\n\n", actual->objeto->detalle);
+                }
+            actual = actual->sig;
+        } while (actual != carpeta->objetos);
+        testigo = testigo->sig;
+    }
+}
+
 /***
  *    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
  *    ████╗ ████║██╔════╝████╗  ██║██║   ██║
@@ -1929,12 +1954,6 @@ void menuImputado(struct MinisterioPublico *ministerio, struct Persona *imputado
     } while (opcion != 6);
 }
 
-void menuTestigo(struct MinisterioPublico *ministerio, struct Persona *testigo) {
-    int opcion;
-    printf("\n===== MENU TESTIGO =====\n");
-    printf("* Este menu puede incluir futuras funciones de citacion.\n");
-    printf("Volviendo al sistema...\n");
-}
 void menuDefensor(struct MinisterioPublico *ministerio, struct Persona *defensor) {
     char ruc[30];
     char descripcion[200];
@@ -1985,6 +2004,7 @@ void menuDefensor(struct MinisterioPublico *ministerio, struct Persona *defensor
     } while (opcion != 4);
 }
 
+/* Menu para el usuario fiscal */
 void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
     int opcion;
     char ruc[30];
@@ -2001,7 +2021,8 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
         printf("7. Consultar denuncias por RUC de causa\n");
         printf("8. Registrar resolucion judicial\n");
         printf("9. Ver resoluciones por RUT\n");
-        printf("10. Salir\n");
+        printf("10. Ver declaraciones de testigos\n");
+        printf("11. Salir\n");
         printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
         getchar();
@@ -2084,19 +2105,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 7:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
-                actual = ministerio->causas;
-                while (actual != NULL) {
-                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                        int i;
-                        for (i = 0; i < actual->datosCausa->carpetaInvestigativa->totalDenuncias; i++) {
-                            struct ObjetoInvestigativo *obj = actual->datosCausa->carpetaInvestigativa->denunciasRecientes[i];
-                            printf("ID: %d | Fecha: %s | RUT: %s\n", obj->id, obj->fecha, obj->rut);
-                            printf("Detalle: %s\n\n", obj->detalle);
-                        }
-                        break;
-                    }
-                    actual = actual->sig;
-                }
+                consultarDenunciasPorRUC(ministerio, ruc);
                 break;
 
             case 8:
@@ -2136,13 +2145,26 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                 break;
 
             case 10:
+                printf("Ingrese RUC de la causa: ");
+                leerCadena(ruc, sizeof(ruc));
+                actual = ministerio->causas;
+                while (actual != NULL) {
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        listarDeclaracionesDeTestigos(actual->datosCausa->carpetaInvestigativa, actual->datosCausa->testigos);
+                        break;
+                    }
+                    actual = actual->sig;
+                }
+                break;
+
+            case 11:
                 break;
 
             default:
                 printf("Opcion invalida.\n");
         }
 
-    } while (opcion != 10);
+    } while (opcion != 11);
 }
 
 void menuPrincipal(struct MinisterioPublico *ministerio) {
@@ -2168,13 +2190,11 @@ void menuPrincipal(struct MinisterioPublico *ministerio) {
         case 2:
             menuImputado(ministerio, usuario);
         break;
+
         case 3:
-            menuTestigo(ministerio, usuario);
-        break;
-        case 5:
             menuFiscal(ministerio, usuario);
         break;
-        case 6:
+        case 5:
             menuDefensor(ministerio, usuario);
         break;
         default:
@@ -2206,16 +2226,16 @@ int main() {
     ministerio->raizImputados = NULL;
 
     /* Personas */
-    struct Persona *p1 = crearPersona("Juan Perez", "12345678-9", 1);
-    struct Persona *p2 = crearPersona("Maria Lopez", "98765432-1", 2);
-    struct Persona *p3 = crearPersona("Pedro Gonzalez", "11222333-4", 5);
-    struct Persona *p4 = crearPersona("Ana Torres", "55667788-9", 6);
-    struct Persona *p5 = crearPersona("Laura Rivas", "10101010-1", 1);
-    struct Persona *p6 = crearPersona("Cristiano Ronaldo", "20202020-2", 2);
-    struct Persona *p7 = crearPersona("Valeria Ruiz", "30303030-3", 5);
-    struct Persona *p8 = crearPersona("Diego Herrera", "40404040-4", 6);
-    struct Persona *p9 = crearPersona("Felipe Nunez", "50505050-5", 3);
-    struct Persona *p10 = crearPersona("Alexis Sanchez", "51285850-5", 3);
+    struct Persona *p1 = crearPersona("Juan Perez", "12345678-9", 1);  // Victima
+    struct Persona *p2 = crearPersona("Maria Lopez", "98765432-1", 2); // Imputado
+    struct Persona *p3 = crearPersona("Pedro Gonzalez", "11222333-4", 5); // Fiscal
+    struct Persona *p4 = crearPersona("Ana Torres", "55667788-9", 6); // Defensor
+    struct Persona *p5 = crearPersona("Laura Rivas", "10101010-1", 1); // Victima
+    struct Persona *p6 = crearPersona("Cristiano Ronaldo", "20202020-2", 2); // Imputado
+    struct Persona *p7 = crearPersona("Valeria Ruiz", "30303030-3", 5); // Fiscal
+    struct Persona *p8 = crearPersona("Diego Herrera", "40404040-4", 6); // Defensor
+    struct Persona *p9 = crearPersona("Felipe Nunez", "50505050-5", 3); // Testigo
+    struct Persona *p10 = crearPersona("Alexis Sanchez", "51285850-5", 3); // Testigo
 
     agregarPersona(&ministerio->personas, p1);
     agregarPersona(&ministerio->personas, p2);
@@ -2244,7 +2264,7 @@ int main() {
     crearCarpetaInvestigativa(c3);
     crearCarpetaInvestigativa(c4);
 
-    /* Fiscales */
+    /* Fiscales asignados */
     c1->fiscalEncargado = p3;
     c2->fiscalEncargado = p3;
     c3->fiscalEncargado = p7;
@@ -2267,6 +2287,10 @@ int main() {
     c3->testigos = testigo1;
     c3->victimas = victimaC3;
 
+    /* Declaraciones de testigos */
+    agregarObjetoInvestigativo(c3->carpetaInvestigativa, 4, "50505050-5", "El testigo vio al imputado en el lugar de los hechos.", "07-06-2025");
+    agregarObjetoInvestigativo(c3->carpetaInvestigativa, 4, "51285850-5", "El testigo escucho gritos y llamo a carabineros.", "07-06-2025");
+
     /* Datos en c1 */
     registrarDenuncia(c1->carpetaInvestigativa, "12345678-9", "Denuncia por robo con violencia", "01-06-2025", 1);
     registrarPeritaje(c1->carpetaInvestigativa, "98765432-1", "Huella encontrada", "02-06-2025");
@@ -2287,6 +2311,7 @@ int main() {
 
     return 0;
 }
+
 
 
 
