@@ -825,25 +825,41 @@ void asociarImputadoACausa(struct Causa *causa, struct Persona *imputado) {
 /* Inserta un imputado en el arbol binario de busqueda segun su RUT */
 struct NodoImputadoABB *insertarImputadoABB(struct NodoImputadoABB *raiz, struct Persona *personaImputado) {
     struct NodoImputadoABB *nuevoNodo;
+    struct NodoPersona *nuevoNodoPersona;
+    int comparacion;
 
+    /* Caso base: arbol vacio */
     if (raiz == NULL) {
-        /* Crear nuevo nodo si el arbol esta vacio */
         nuevoNodo = (struct NodoImputadoABB *) malloc(sizeof(struct NodoImputadoABB));
         if (nuevoNodo == NULL) {
             return NULL;
         }
-        nuevoNodo->datosImputados = personaImputado;
+
+        nuevoNodoPersona = (struct NodoPersona *) malloc(sizeof(struct NodoPersona));
+        if (nuevoNodoPersona == NULL) {
+            free(nuevoNodo);
+            return NULL;
+        }
+
+        nuevoNodoPersona->datosPersona = personaImputado;
+        nuevoNodoPersona->sig = NULL;
+
+        nuevoNodo->datosImputados = nuevoNodoPersona;
         nuevoNodo->izq = NULL;
         nuevoNodo->der = NULL;
         nuevoNodo->formalizacion = NULL;
+
         return nuevoNodo;
     }
 
-    /* Comparar RUT para insertar a la izquierda o derecha */
-    if (strcmp(personaImputado->rut, raiz->datosImputados->datosPersona->rut) < 0) {
+    /* Comparar por RUT */
+    comparacion = strcmp(personaImputado->rut, raiz->datosImputados->datosPersona->rut);
+    if (comparacion < 0) {
         raiz->izq = insertarImputadoABB(raiz->izq, personaImputado);
-    } else {
+    } else if (comparacion > 0) {
         raiz->der = insertarImputadoABB(raiz->der, personaImputado);
+    } else {
+        printf("Ya existe un imputado con ese RUT.\n");
     }
 
     return raiz;
@@ -1741,6 +1757,22 @@ int estaAsociadoALaCausa(struct Causa *causa, struct Persona *persona) {
     return 0;
 }
 
+void listarResolucionesPorImputado(struct CarpetaInvestigativa *carpeta, char *rutBuscado) {
+    struct NodoObjetoInvestigativo *actual;
+    if (carpeta == NULL || carpeta->objetos == NULL) {
+        printf("Carpeta no valida o vacia.\n");
+        return;
+    }
+
+    actual = carpeta->objetos;
+    do {
+        if (actual->objeto->tipo == 5 && strcmp(actual->objeto->rut, rutBuscado) == 0) {
+            printf("Fecha: %s | Detalle: %s\n", actual->objeto->fecha, actual->objeto->detalle);
+        }
+        actual = actual->sig;
+    } while (actual != carpeta->objetos);
+}
+
 /***
  *    ███╗   ███╗███████╗███╗   ██╗██╗   ██╗
  *    ████╗ ████║██╔════╝████╗  ██║██║   ██║
@@ -1967,7 +1999,9 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
         printf("5. Modificar datos de causa\n");
         printf("6. Registrar nueva denuncia\n");
         printf("7. Consultar denuncias por RUC de causa\n");
-        printf("8. Salir\n");
+        printf("8. Registrar resolucion judicial\n");
+        printf("9. Ver resoluciones por RUT\n");
+        printf("10. Salir\n");
         printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
         getchar();
@@ -2050,17 +2084,65 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 7:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
-                consultarDenunciasPorRUC(ministerio, ruc);
+                actual = ministerio->causas;
+                while (actual != NULL) {
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        int i;
+                        for (i = 0; i < actual->datosCausa->carpetaInvestigativa->totalDenuncias; i++) {
+                            struct ObjetoInvestigativo *obj = actual->datosCausa->carpetaInvestigativa->denunciasRecientes[i];
+                            printf("ID: %d | Fecha: %s | RUT: %s\n", obj->id, obj->fecha, obj->rut);
+                            printf("Detalle: %s\n\n", obj->detalle);
+                        }
+                        break;
+                    }
+                    actual = actual->sig;
+                }
                 break;
 
             case 8:
+                printf("Ingrese RUC de la causa: ");
+                leerCadena(ruc, sizeof(ruc));
+                actual = ministerio->causas;
+                while (actual != NULL) {
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        char rut[20], fecha[20], detalle[200];
+                        printf("Ingrese RUT asociado: ");
+                        leerCadena(rut, sizeof(rut));
+                        printf("Ingrese fecha: ");
+                        leerCadena(fecha, sizeof(fecha));
+                        printf("Ingrese detalle: ");
+                        leerCadena(detalle, sizeof(detalle));
+                        agregarObjetoInvestigativo(actual->datosCausa->carpetaInvestigativa, 5, rut, detalle, fecha);
+                        break;
+                    }
+                    actual = actual->sig;
+                }
+                break;
+
+            case 9:
+                printf("Ingrese RUC de la causa: ");
+                leerCadena(ruc, sizeof(ruc));
+                printf("Ingrese RUT del interviniente: ");
+                char rutConsulta[20];
+                leerCadena(rutConsulta, sizeof(rutConsulta));
+                actual = ministerio->causas;
+                while (actual != NULL) {
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        listarResolucionesPorImputado(actual->datosCausa->carpetaInvestigativa, rutConsulta);
+                        break;
+                    }
+                    actual = actual->sig;
+                }
+                break;
+
+            case 10:
                 break;
 
             default:
                 printf("Opcion invalida.\n");
         }
 
-    } while (opcion != 8);
+    } while (opcion != 10);
 }
 
 void menuPrincipal(struct MinisterioPublico *ministerio) {
@@ -2205,7 +2287,6 @@ int main() {
 
     return 0;
 }
-
 
 
 
