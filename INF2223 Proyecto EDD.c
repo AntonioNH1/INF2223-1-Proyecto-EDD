@@ -2130,20 +2130,16 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
 
             case 9:
                 printf("Ingrese RUC de la causa: ");
-                leerCadena(ruc, sizeof(ruc));
-                printf("Ingrese RUT del interviniente: ");
-                char rutConsulta[20];
-                leerCadena(rutConsulta, sizeof(rutConsulta));
-                actual = ministerio->causas;
-                while (actual != NULL) {
-                    if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                        listarResolucionesPorImputado(actual->datosCausa->carpetaInvestigativa, rutConsulta);
-                        break;
-                    }
-                    actual = actual->sig;
+            leerCadena(ruc, sizeof(ruc));
+            actual = ministerio->causas;
+            while (actual != NULL) {
+                if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                    listarResolucionesJudiciales(actual->datosCausa->carpetaInvestigativa);
+                    break;
                 }
-                break;
-
+                actual = actual->sig;
+            }
+            break;
             case 10:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
