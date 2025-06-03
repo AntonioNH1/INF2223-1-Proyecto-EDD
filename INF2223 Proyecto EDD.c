@@ -1915,7 +1915,7 @@ void menuImputado(struct MinisterioPublico *ministerio, struct Persona *imputado
         printf("4. Revisar medida cautelar\n");
         printf("5. Ver formalizacion propia\n");
         printf("6. Salir\n");
-        printf("Seleccione una opcion: \n");
+        printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
         getchar();
 
