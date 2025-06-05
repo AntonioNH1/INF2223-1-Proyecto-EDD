@@ -57,8 +57,7 @@ struct Causa {
 };
 
 /* Carpeta investigativa asociada a una causa penal */
-struct CarpetaInvestigativa {
-    char *estadoCaso;                                     /* Estado del caso en la carpeta */
+struct CarpetaInvestigativa {/* Estado del caso en la carpeta */
     struct NodoObjetoInvestigativo *objetos;              /* Lista circular de objetos vinculados */
     struct ObjetoInvestigativo *denunciasRecientes[MAX_DENUNCIAS]; /* Arreglo estatico de denuncias */
     int totalDenuncias;                                   /* Numero actual de denuncias guardadas */
@@ -91,6 +90,7 @@ struct Persona {
     char *nombre;     /* Nombre completo */
     char *rut;        /* RUT unico */
     int tipo;         /* Tipo: 1=victima, 2=Imputado, 3=Testigo, 4=Juez, 5=Fiscal, 6=Defensor */
+    char *clave;
 };
 
 /***
