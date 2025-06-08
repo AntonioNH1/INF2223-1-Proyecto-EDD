@@ -2744,7 +2744,7 @@ void menuPrincipal(struct MinisterioPublico *ministerio) {
     leerCadena(nombre, sizeof(nombre));
     printf("Ingrese su RUT (sin puntos y con guion): ");
     leerCadena(rut, sizeof(rut));
-    printf("Ingrese su tipo (0=Administrador, 1=Victima, 2=Imputado, 5=Fiscal, 6=Defensor): ");
+    printf("Ingrese su tipo (0=Administrador, 1=Victima, 2=Imputado,\n 5=Fiscal, 6=Defensor): ");
     scanf("%d", &tipo);
     getchar();
 
