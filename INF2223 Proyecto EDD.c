@@ -31,11 +31,12 @@ struct NodoImputadoABB {
 
 /* Contiene los datos de formalizacion judicial de un imputado */
 struct Formalizacion {
-    char *delito;           /* Nombre del delito formalizado */
-    char *antecedentes;     /* Antecedentes que sustentan el delito */
-    char *fecha;            /* Fecha de la formalizacion */
-    int medidaCautelar;     /* Medida cautelar (1 = prision, 2 = arraigo, etc.) */
+    char *delito;
+    char *antecedentes;
+    char *fecha;
+    int medidaCautelar;
     struct Persona *defensor;
+    char *rutImputado;
 };
 
 /* Nodo de la lista enlazada de causas */
@@ -141,7 +142,7 @@ void proponerAcuerdoReparatorio(struct Causa *causa) {
 
 int esInterviniente(int tipoPersona) {
     if (tipoPersona == 1 || tipoPersona == 2 || tipoPersona == 5) {
-        return 1; // Denunciante, Imputado o Fiscal
+        return 1; //Victima, Imputado o Fiscal
     }
     return 0;
 }
@@ -186,6 +187,28 @@ int contieneSubcadena(char *cadena, char *subcadena) {
         }
     }
 
+    return 0;
+}
+
+int estaAsociadoALaCausa(struct Causa *causa, struct Persona *persona) {
+    struct NodoPersona *nodo;
+
+    if (persona->tipo == 1) {
+        nodo = causa->victimas;
+    } else if (persona->tipo == 2) {
+        nodo = causa->imputadosAsociados;
+    } else if (persona->tipo == 5) {
+        return (causa->fiscalEncargado != NULL && strcmp(causa->fiscalEncargado->rut, persona->rut) == 0);
+    } else {
+        return 0;
+    }
+
+    while (nodo != NULL) {
+        if (strcmp(nodo->datosPersona->rut, persona->rut) == 0) {
+            return 1;
+        }
+        nodo = nodo->sig;
+    }
     return 0;
 }
 
@@ -656,17 +679,17 @@ void revisarCarpetaInvestigativa(struct CarpetaInvestigativa *carpeta) {
     } while (actual != carpeta->objetos);
 }
 
-void solicitarRevisionCarpeta(struct Persona *solicitante, struct CarpetaInvestigativa *carpeta) {
-    if (solicitante == NULL || carpeta == NULL) {
+void solicitarRevisionCarpeta(struct Persona *solicitante, struct Causa *causa) {
+    if (solicitante == NULL || causa == NULL || causa->carpetaInvestigativa == NULL) {
         printf("\nSolicitud invalida.\n");
         return;
     }
 
-    if (esInterviniente(solicitante->tipo)) {
+    if (esInterviniente(solicitante->tipo) && estaAsociadoALaCausa(causa, solicitante)) {
         printf("\nAcceso autorizado para %s (RUT: %s).\n", solicitante->nombre, solicitante->rut);
-        revisarCarpetaInvestigativa(carpeta);
+        revisarCarpetaInvestigativa(causa->carpetaInvestigativa);
     } else {
-        printf("\nAcceso denegado. Usted no tiene permisos para revisar la carpeta investigativa.\n");
+        printf("\nAcceso denegado. Usted no tiene permisos para revisar esta carpeta investigativa.\n");
     }
 }
 
@@ -913,14 +936,13 @@ void formalizarImputado(struct NodoImputadoABB *imputados, char *delito, char *a
     nuevaFormalizacion->antecedentes = copiarCadena(antecedentes);
     nuevaFormalizacion->fecha = copiarCadena(fecha);
     nuevaFormalizacion->medidaCautelar = medidaCautelar;
+    nuevaFormalizacion->rutImputado = copiarCadena(imputados->datosImputados->datosPersona->rut); /* ASIGNAR RUT */
 
     /* Asociar formalizacion al nodo de imputado */
     imputados->formalizacion = nuevaFormalizacion;
 }
-
-/* Formaliza a una persona como imputado, asignandole un defensor y registrando la formalización en el ABB y carpeta */
 /* Crea y retorna una nueva formalización */
-struct Formalizacion *crearFormalizacion(char *delito, char *antecedentes, char *fecha, int medida, struct Persona *defensor) {
+struct Formalizacion *crearFormalizacion(char *delito, char *antecedentes, char *fecha, int medida, struct Persona *defensor, char *rutImputado) {
     struct Formalizacion *nuevaFormalizacion;
 
     nuevaFormalizacion = (struct Formalizacion *) malloc(sizeof(struct Formalizacion));
@@ -928,15 +950,16 @@ struct Formalizacion *crearFormalizacion(char *delito, char *antecedentes, char 
         printf("Error de memoria para formalizacion.\n");
         return NULL;
     }
-
     nuevaFormalizacion->delito = copiarCadena(delito);
     nuevaFormalizacion->antecedentes = copiarCadena(antecedentes);
     nuevaFormalizacion->fecha = copiarCadena(fecha);
     nuevaFormalizacion->medidaCautelar = medida;
     nuevaFormalizacion->defensor = defensor;
+    nuevaFormalizacion->rutImputado = copiarCadena(rutImputado);
 
     return nuevaFormalizacion;
 }
+
 
 /* Crea y retorna un nuevo nodo de imputado en ABB */
 struct NodoImputadoABB *crearNodoImputado(struct Persona *imputado, struct Formalizacion *formalizacion) {
@@ -990,7 +1013,7 @@ void formalizarConDefensor(struct MinisterioPublico *ministerio,
 
     imputado = crearPersona(nombreImputado, rutImputado, 2);
     defensor = crearPersona(nombreDefensor, rutDefensor, 6);
-    infoFormalizacion = crearFormalizacion(delito, antecedentes, fecha, medidaCautelar, defensor);
+    infoFormalizacion = crearFormalizacion(delito, antecedentes, fecha, medidaCautelar, defensor, rutImputado);
 
     if (infoFormalizacion == NULL) return;
 
@@ -1617,34 +1640,51 @@ void mostrarCausasAsociadasAImputado(struct NodoCausa *headCausas, struct Person
     }
 }
 
-void consultarEstadoCausaAsociada(struct NodoCausa *headCausas, struct Persona *imputado, char *ruc) {
+void consultarEstadoCausaAsociada(struct NodoCausa *headCausas, struct Persona *persona, char *ruc) {
     struct NodoCausa *actual;
     struct NodoPersona *nodo;
 
-    if (headCausas == NULL || imputado == NULL || ruc == NULL) {
-        printf("Parametros invalidos.");
+    if (headCausas == NULL || persona == NULL || ruc == NULL) {
+        printf("Parametros invalidos.\n");
         return;
     }
 
     actual = headCausas;
     while (actual != NULL) {
         if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-            nodo = actual->datosCausa->imputadosAsociados;
+            /* Verificar segun tipo */
+            if (persona->tipo == 1) {
+                nodo = actual->datosCausa->victimas;
+            } else if (persona->tipo == 2) {
+                nodo = actual->datosCausa->imputadosAsociados;
+            } else if (persona->tipo == 5) {
+                if (actual->datosCausa->fiscalEncargado != NULL &&
+                    strcmp(actual->datosCausa->fiscalEncargado->rut, persona->rut) == 0) {
+                    printf("Estado actual de la causa %s: %s\n", ruc, actual->datosCausa->estado);
+                    return;
+                    } else {
+                        printf("La causa existe pero no esta asignada a este fiscal.\n");
+                        return;
+                    }
+            } else {
+                printf("Tipo de persona no valida para consulta.\n");
+                return;
+            }
+
             while (nodo != NULL) {
-                if (strcmp(nodo->datosPersona->rut, imputado->rut) == 0) {
-                    printf("Estado actual de la causa %s: %s", ruc, actual->datosCausa->estado);
+                if (strcmp(nodo->datosPersona->rut, persona->rut) == 0) {
+                    printf("Estado actual de la causa %s: %s\n", ruc, actual->datosCausa->estado);
                     return;
                 }
                 nodo = nodo->sig;
             }
-            printf("La causa existe pero no esta asociada al imputado.");
+            printf("La causa existe pero no esta asociada a esta persona.\n");
             return;
         }
         actual = actual->sig;
     }
-    printf("No se encontro una causa con ese RUC.");
+    printf("No se encontro una causa con ese RUC.\n");
 }
-
 void revisarMedidaCautelar(struct NodoImputadoABB *raiz, struct Persona *imputado) {
     struct NodoImputadoABB *nodo;
 
@@ -1695,7 +1735,7 @@ void verCarpetasDeDefendidos(struct MinisterioPublico *ministerio, struct NodoIm
                 while (nodo != NULL) {
                     if (strcmp(nodo->datosPersona->rut, raiz->datosImputados->datosPersona->rut) == 0) {
                         printf("Carpeta del imputado: %s (%s)", nodo->datosPersona->nombre, nodo->datosPersona->rut);
-                        solicitarRevisionCarpeta(defensor, actual->datosCausa->carpetaInvestigativa);
+                        solicitarRevisionCarpeta(defensor, actual->datosCausa);
                         break;
                     }
                     nodo = nodo->sig;
@@ -1706,28 +1746,6 @@ void verCarpetasDeDefendidos(struct MinisterioPublico *ministerio, struct NodoIm
     }
 
     verCarpetasDeDefendidos(ministerio, raiz->der, defensor);
-}
-
-int estaAsociadoALaCausa(struct Causa *causa, struct Persona *persona) {
-    struct NodoPersona *nodo;
-
-    if (persona->tipo == 1) {
-        nodo = causa->victimas;
-    } else if (persona->tipo == 2) {
-        nodo = causa->imputadosAsociados;
-    } else if (persona->tipo == 5) {
-        return (causa->fiscalEncargado != NULL && strcmp(causa->fiscalEncargado->rut, persona->rut) == 0);
-    } else {
-        return 0;
-    }
-
-    while (nodo != NULL) {
-        if (strcmp(nodo->datosPersona->rut, persona->rut) == 0) {
-            return 1;
-        }
-        nodo = nodo->sig;
-    }
-    return 0;
 }
 
 void listarResolucionesPorImputado(struct CarpetaInvestigativa *carpeta, char *rutBuscado) {
@@ -1933,7 +1951,7 @@ void menuVictima(struct MinisterioPublico *ministerio, struct Persona *victima) 
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                        solicitarRevisionCarpeta(victima, actual->datosCausa->carpetaInvestigativa);
+                        solicitarRevisionCarpeta(victima, actual->datosCausa);
                         break;
                     }
                     actual = actual->sig;
@@ -1947,6 +1965,10 @@ void menuVictima(struct MinisterioPublico *ministerio, struct Persona *victima) 
             case 4:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                if (ministerio->causas == NULL) {
+                    printf("causa no encontrada.");
+                    break;
+                }
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -1957,7 +1979,6 @@ void menuVictima(struct MinisterioPublico *ministerio, struct Persona *victima) 
                     }
                     actual = actual->sig;
                 }
-                printf("causa no encontrada.");
                 break;
             case 5:
                 break;
@@ -1995,7 +2016,7 @@ void menuImputado(struct MinisterioPublico *ministerio, struct Persona *imputado
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                        solicitarRevisionCarpeta(imputado, actual->datosCausa->carpetaInvestigativa);
+                        solicitarRevisionCarpeta(imputado, actual->datosCausa);
                         break;
                     }
                     actual = actual->sig;
@@ -2750,7 +2771,7 @@ void menuPrincipal(struct MinisterioPublico *ministerio) {
     leerCadena(nombre, sizeof(nombre));
     printf("Ingrese su RUT (sin puntos y con guion): ");
     leerCadena(rut, sizeof(rut));
-    printf("Ingrese su tipo (0=Administrador, 1=Victima, 2=Imputado,\n 5=Fiscal, 6=Defensor): ");
+    printf("Ingrese su tipo (0=Administrador, 1=Victima, 2=Imputado, 5=Fiscal, 6=Defensor): ");
     scanf("%d", &tipo);
     getchar();
 
@@ -2921,9 +2942,22 @@ int main() {
     ejecutarSentenciaFinal(c3, "09-06-2025");
     archivarCausa(c3, "10-06-2025");
 
-    asociarPersona(c1, p1);
-    asociarPersona(c1, p2);
-    asociarPersona(c3, p6);
+    /* Asociaciones de personas a causas */
+    asociarPersona(c1, p1);  // Victima
+    asociarPersona(c1, p2);  // Imputado
+    asociarPersona(c1, p9);  // Testigo
+    asociarPersona(c1, p10); // Testigo
+
+    asociarPersona(c2, p1);  // Victima
+    asociarPersona(c2, p2);  // Imputado
+
+    asociarPersona(c3, p5);  // Victima
+    asociarPersona(c3, p6);  // Imputado
+    asociarPersona(c3, p9);  // Testigo
+    asociarPersona(c3, p10); // Testigo
+
+    asociarPersona(c4, p1);  // Victima
+    asociarPersona(c4, p2);  // Imputado
 
     /* Iniciar el menu */
     menuPrincipal(ministerio);
