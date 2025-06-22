@@ -104,6 +104,7 @@ struct Persona {
 void leerCadena(char *cadena, int longitud) {
     int i;
     char c;
+    c = '\0';
 
     i = 0;
     while (i < longitud - 1) {
@@ -111,17 +112,17 @@ void leerCadena(char *cadena, int longitud) {
         if (c == '\n' || c == '\r') {
             break;
         }
-        cadena[i++] = c;
+        cadena[i] = c;
+        i++;
     }
+
     cadena[i] = '\0';
 
-    /* limpiar caracteres sobrantes si se ingreso más texto del permitido */
+    /* Limpiar el resto del buffer */
     while (c != '\n' && c != '\r' && c != EOF) {
         c = getchar();
     }
 }
-
-
 
 /* Copia una cadena manualmente, compatible con ANSI C */
 char *copiarCadena(char *texto) {
