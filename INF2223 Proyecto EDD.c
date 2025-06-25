@@ -1704,12 +1704,13 @@ void listarResolucionesPorImputado(struct CarpetaInvestigativa *carpeta, char *r
 void listarDeclaracionesDeTestigos(struct CarpetaInvestigativa *carpeta, struct NodoPersona *testigos) {
     struct NodoObjetoInvestigativo *actual;
     struct NodoPersona *testigo;
+    int hayDeclaraciones;
 
     if (carpeta == NULL || carpeta->objetos == NULL || testigos == NULL) {
         printf("No hay declaraciones o testigos disponibles.\n");
         return;
     }
-
+    hayDeclaraciones = 0;
     printf("=== Declaraciones de testigos ===\n");
     testigo = testigos;
     while (testigo != NULL) {
@@ -1719,12 +1720,18 @@ void listarDeclaracionesDeTestigos(struct CarpetaInvestigativa *carpeta, struct 
                 strcmp(actual->objeto->rut, testigo->datosPersona->rut) == 0) {
                 printf("Testigo: %s | Fecha: %s\n", testigo->datosPersona->nombre, actual->objeto->fecha);
                 printf("Detalle: %s\n\n", actual->objeto->detalle);
+                hayDeclaraciones = 1;
                 }
             actual = actual->sig;
         } while (actual != carpeta->objetos);
         testigo = testigo->sig;
     }
+
+    if (!hayDeclaraciones) {
+        printf("No hay declaraciones registradas por los testigos.\n");
+    }
 }
+
 
 /* Asocia una persona a una causa dependiendo de su tipo */
 void asociarPersona(struct Causa *causa, struct Persona *persona, int mostrarMensajes) {
