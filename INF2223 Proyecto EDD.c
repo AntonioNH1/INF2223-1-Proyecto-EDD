@@ -70,7 +70,7 @@ struct ObjetoInvestigativo {
     char *fecha;         /* Fecha de creacion o incorporacion */
     char *rut;           /* RUT de la persona que lo genero */
     char *detalle;       /* Descripcion del objeto */
-    int tipo;            /* Tipo de objeto (1=Denuncia, 2=Prueba, etc.) */
+    int tipo;            /* Tipo de objeto (1=Prueba, 2=Diligencia, 3=Declaracion, 4=Resolucion Judicial, 5=Sentencia Final, otro=Desconocido.) */
     int sentenciaFinal;  /* 1 si es sentencia final, 0 si no lo es */
 };
 
@@ -693,12 +693,11 @@ void eliminarObjetoPorId(struct NodoObjetoInvestigativo **headObjetos, int idBus
 
 /* Devuelve el nombre textual de un tipo de objeto investigativo */
 char *obtenerNombreTipoObjeto(int tipo) {
-
-    if (tipo == 2) return "Prueba";
-    if (tipo == 3) return "Diligencia";
-    if (tipo == 4) return "Declaracion";
-    if (tipo == 5) return "Resolucion Judicial";
-    if (tipo == 6) return "Sentencia Final";
+    if (tipo == 1) return "Prueba";
+    if (tipo == 2) return "Diligencia";
+    if (tipo == 3) return "Declaracion";
+    if (tipo == 4) return "Resolucion Judicial";
+    if (tipo == 5) return "Sentencia Final";
     return "Desconocido";
 }
 
