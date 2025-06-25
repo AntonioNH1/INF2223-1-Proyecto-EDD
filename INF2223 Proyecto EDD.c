@@ -88,17 +88,19 @@ struct Persona {
     char *clave;
 };
 
-/***
- *    ███████╗██╗   ██╗███╗   ██╗ ██████╗██╗ ██████╗ ███╗   ██╗███████╗███████╗
- *    ██╔════╝██║   ██║████╗  ██║██╔════╝██║██╔═══██╗████╗  ██║██╔════╝██╔════╝
- *    █████╗  ██║   ██║██╔██╗ ██║██║     ██║██║   ██║██╔██╗ ██║█████╗  ███████╗
- *    ██╔══╝  ██║   ██║██║╚██╗██║██║     ██║██║   ██║██║╚██╗██║██╔══╝  ╚════██║
- *    ██║     ╚██████╔╝██║ ╚████║╚██████╗██║╚██████╔╝██║ ╚████║███████╗███████║
- *    ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝╚═╝ ╚═════╝ ╚═╝  ╚═══╝╚══════╝╚══════╝
- *
- */
-
 /* ======================== FUNCIONES EXTRA ======================== */
+
+void limpiarCadena(char *cadena) {
+    int i;
+    i = 0;
+    while (cadena[i] != '\0') {
+        if (cadena[i] == '\n' || cadena[i] == '\r') {
+            cadena[i] = '\0';
+            break;
+        }
+        i++;
+    }
+}
 
 /* Lee una cadena desde stdin y elimina el salto de linea final */
 void leerCadena(char *cadena, int longitud) {
@@ -275,6 +277,7 @@ void listarCausas(struct NodoCausa *headCausas) {
                actual->datosCausa->RUC,
                actual->datosCausa->CategoriaCausa,
                actual->datosCausa->estado);
+
         actual = actual->sig;
     }
 }
@@ -328,8 +331,14 @@ void modificarCausa(struct NodoCausa *headCausas, char *rucBuscado, char *nuevaC
 void cambiarEstadoCausa(struct NodoCausa *headCausas, char *rucBuscado, char *nuevoEstado) {
     struct NodoCausa *actual;
 
+    if (headCausas == NULL) {
+        return;
+    }
     actual = headCausas;
     while (actual != NULL) {
+        limpiarCadena(actual->datosCausa->RUC);
+        limpiarCadena(rucBuscado);
+        printf("DEBUG: comparando RUC '%s' con '%s'\n", actual->datosCausa->RUC, rucBuscado);
         if (strcmp(actual->datosCausa->RUC, rucBuscado) == 0) {
             actual->datosCausa->estado = copiarCadena(nuevoEstado);
             printf("Estado de la causa actualizado a: %s\n", nuevoEstado);
@@ -519,6 +528,8 @@ void agregarObjetoPorTipo(struct CarpetaInvestigativa *carpeta) {
     char rut[20];
     char detalle[200];
     struct ObjetoInvestigativo *nuevo;
+    struct NodoObjetoInvestigativo *actual;
+    struct NodoObjetoInvestigativo *inicio;
 
     /* Verifica que la carpeta investigativa sea valida */
     if (carpeta == NULL) {
@@ -529,23 +540,40 @@ void agregarObjetoPorTipo(struct CarpetaInvestigativa *carpeta) {
     /* Entrada de datos */
     printf("Ingrese ID del objeto: ");
     scanf("%d", &id);
+    while (getchar() != '\n');
+    inicio = carpeta->objetos;
+    actual = inicio;
 
+    do {
+        if (actual->objeto != NULL) {
+            printf("DEBUG: revisando id=%d\n", actual->objeto->id);
+            if (actual->objeto->id == id) {
+                printf("Ya existe un objeto con ese ID en la carpeta investigativa.\n");
+                return;
+            }
+        }
+        actual = actual->sig;
+    } while (actual != inicio);
 
     printf("Fecha (dd-mm-aaaa): ");
     leerCadena(fecha, sizeof(fecha));
+    limpiarCadena(fecha);
 
     printf("RUT de la persona que genero el objeto: ");
     leerCadena(rut, sizeof(rut));
+    limpiarCadena(rut);
 
     printf("Detalle del objeto: ");
     leerCadena(detalle, sizeof(detalle));
+    limpiarCadena(detalle);
 
     printf("Tipo de objeto:\n");
-    printf("1 = Denuncia\n2 = Prueba\n3 = Diligencia\n4 = Declaracion\n5 = Resolucion Judicial\n");
+    printf("1 = Prueba\n2 = Diligencia\n3 = Declaracion\n4 = Resolucion Judicial\n");
     printf("Seleccione tipo: ");
     scanf("%d", &tipo);
+    while (getchar() != '\n');
 
-    if (tipo < 1 || tipo > 5) {
+    if (tipo < 1 || tipo > 4) {
         printf("Tipo invalido. Debe ser un numero entre 1 y 5.\n");
         return;
     }
@@ -658,7 +686,7 @@ void eliminarObjetoPorId(struct NodoObjetoInvestigativo **headObjetos, int idBus
 
 /* Devuelve el nombre textual de un tipo de objeto investigativo */
 char *obtenerNombreTipoObjeto(int tipo) {
-    if (tipo == 1) return "Denuncia";
+
     if (tipo == 2) return "Prueba";
     if (tipo == 3) return "Diligencia";
     if (tipo == 4) return "Declaracion";
@@ -676,15 +704,14 @@ void revisarCarpetaInvestigativa(struct CarpetaInvestigativa *carpeta) {
         return;
     }
 
-    printf("\n--- Contenido de la carpeta investigativa ---\n");
     actual = carpeta->objetos;
     do {
-        printf("ID: %d | Tipo: %s | Fecha: %s | RUT: %s\n",
+        printf("\nID: %d | Tipo: %s | Fecha: %s | RUT: %s\n",
                actual->objeto->id,
                obtenerNombreTipoObjeto(actual->objeto->tipo),
                actual->objeto->fecha,
                actual->objeto->rut);
-        printf("Detalle: %s\n\n", actual->objeto->detalle);
+        printf("Detalle: %s\n", actual->objeto->detalle);
         actual = actual->sig;
     } while (actual != carpeta->objetos);
 }
@@ -1911,6 +1938,7 @@ void asociarPersona(struct Causa *causa, struct Persona *persona) {
         return;
     }
 
+
     /* Reservar memoria para el nodo */
     nuevoNodo = (struct NodoPersona *) malloc(sizeof(struct NodoPersona));
     if (nuevoNodo == NULL) {
@@ -2140,21 +2168,21 @@ void menuImputado(struct MinisterioPublico *ministerio, struct Persona *imputado
             break;
             case 2:
                 printf("Ingrese RUC de la causa: ");
-            leerCadena(ruc, sizeof(ruc));
-            actual = ministerio->causas;
-            encontrada = 0;
-            while (actual != NULL) {
-                if (actual->datosCausa != NULL && strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                    solicitarRevisionCarpeta(imputado, actual->datosCausa);
-                    encontrada = 1;
-                    break;
+                leerCadena(ruc, sizeof(ruc));
+                actual = ministerio->causas;
+                encontrada = 0;
+                while (actual != NULL) {
+                    if (actual->datosCausa != NULL && strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        solicitarRevisionCarpeta(imputado, actual->datosCausa);
+                        encontrada = 1;
+                        break;
+                    }
+                    actual = actual->sig;
                 }
-                actual = actual->sig;
-            }
-            if (!encontrada) {
-                printf("No se encontro una causa con ese RUC.\n");
-            }
-            break;
+                if (!encontrada) {
+                    printf("No se encontro una causa con ese RUC.\n");
+                }
+                break;
             case 3:
                 printf("Ingrese RUC de la causa: ");
             leerCadena(ruc, sizeof(ruc));
@@ -2235,6 +2263,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
 
         printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
+        while (getchar() != '\n');
 
         switch (opcion) {
             case 1:
@@ -2244,14 +2273,17 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 2:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("Ingrese nuevo estado: ");
                 leerCadena(estado, sizeof(estado));
+                limpiarCadena(ruc);
                 cambiarEstadoCausa(ministerio->causas, ruc, estado);
                 break;
 
             case 3:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                while (getchar() != '\n');
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2275,14 +2307,14 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 4:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
-                    if (strcmp(actual->datosCausa->RUC, ruc) == 0 &&
-                        actual->datosCausa->fiscalEncargado != NULL &&
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0 && actual->datosCausa->fiscalEncargado != NULL &&
                         strcmp(actual->datosCausa->fiscalEncargado->rut, fiscal->rut) == 0) {
-
                         printf("Ingrese RUT de la persona a asociar: ");
                         leerCadena(rut, sizeof(rut));
+                        limpiarCadena(rut);
                         persona = buscarPersonaPorRut(ministerio->personas, rut);
                         if (persona != NULL) {
                             asociarPersona(actual->datosCausa, persona);
@@ -2298,8 +2330,23 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 5:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
+
+                    printf("DEBUG: actual->datosCausa->RUC='%s', input ruc='%s'\n", actual->datosCausa->RUC, ruc);
+
+                    if (actual->datosCausa->fiscalEncargado != NULL)
+                        printf("DEBUG: fiscal encargado='%s', fiscal logeado='%s'\n", actual->datosCausa->fiscalEncargado->rut, fiscal->rut);
+                    else
+                        printf("DEBUG: fiscal encargado=NULL\n");
+
+                    printf("CONDICION RUC: %d\n", strcmp(actual->datosCausa->RUC, ruc) == 0);
+                    printf("CONDICION FISCAL ENCAR: %d\n", actual->datosCausa->fiscalEncargado != NULL);
+                    if (actual->datosCausa->fiscalEncargado != NULL)
+                        printf("CONDICION RUT FISCAL: %d\n", strcmp(actual->datosCausa->fiscalEncargado->rut, fiscal->rut) == 0);
+
+
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0 && actual->datosCausa->fiscalEncargado != NULL && strcmp(actual->datosCausa->fiscalEncargado->rut, fiscal->rut) == 0) {
                         printf("Ingrese RUT del denunciante: ");
                         leerCadena(rut, sizeof(rut));
@@ -2308,22 +2355,24 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                         printf("Ingrese fecha (dd-mm-aaaa): ");
                         leerCadena(estado, sizeof(estado));
                         registrarDenuncia(actual->datosCausa->carpetaInvestigativa, rut, detalle, estado);
+                        break;
                         } else {
                             printf("No tiene permiso para registrar denuncia en esta causa.\n");
                         }
-                    break;
+                    actual = actual->sig;
                 }
-                actual = actual->sig;
                 break;
             case 6:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                while (getchar() != '\n');
                 consultarDenunciasPorRUC(ministerio, ruc);
                 break;
 
             case 7:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2335,7 +2384,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                 break;
 
             case 8:
-                while (getchar() != '\n'); /* Limpiar buffer */
+                while (getchar() != '\n');
                 printf("Ingrese RUC de la causa para ver sus denuncias: ");
                 leerCadena(ruc, sizeof(ruc));
 
@@ -2402,15 +2451,19 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 10:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
                         printf("Ingrese ID del objeto a modificar: ");
                         scanf("%d", &id);
+                        while (getchar() != '\n');
                         printf("Ingrese nuevo detalle: ");
                         leerCadena(detalle, sizeof(detalle));
+                        limpiarCadena(detalle);
                         printf("Ingrese nuevo tipo: ");
                         scanf("%d", &tipo);
+                        while (getchar() != '\n');
                         modificarDatosObjeto(actual->datosCausa->carpetaInvestigativa->objetos, id, detalle, tipo);
                         break;
                     }
@@ -2421,11 +2474,13 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 11:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
                         printf("Ingrese ID del objeto a eliminar: ");
                         scanf("%d", &id);
+                        while (getchar() != '\n');
                         eliminarObjetoPorId(&actual->datosCausa->carpetaInvestigativa->objetos, id);
                         break;
                     }
@@ -2436,15 +2491,19 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 12:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
                         printf("Ingrese RUT asociado: ");
                         leerCadena(rut, sizeof(rut));
+                        limpiarCadena(rut);
                         printf("Ingrese detalle de la resolucion: ");
                         leerCadena(detalle, sizeof(detalle));
+                        limpiarCadena(detalle);
                         printf("Ingrese fecha (dd-mm-aaaa): ");
                         leerCadena(estado, sizeof(estado));
+                        limpiarCadena(estado);
                         agregarObjetoInvestigativo(actual->datosCausa->carpetaInvestigativa, 5, rut, detalle, estado);
 
                         break;
@@ -2455,6 +2514,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 13:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2468,6 +2528,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 14:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2481,6 +2542,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 15:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2510,6 +2572,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 16:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2528,6 +2591,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 17:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2547,9 +2611,11 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 18:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        printf("\n--- Contenido de la carpeta investigativa RUC: %s ---\n", actual->datosCausa->RUC);
                         revisarCarpetaInvestigativa(actual->datosCausa->carpetaInvestigativa);
                         break;
                     }
@@ -2560,6 +2626,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 19:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2573,6 +2640,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
             case 20:
                 printf("Ingrese RUT del imputado: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 imputadoNodo = buscarImputadoPorRut(ministerio->raizImputados, rut);
                 if (imputadoNodo == NULL) {
                     printf("No se encontro imputado con ese RUT.\n");
@@ -2669,6 +2737,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
 
         printf("Seleccione una opcion: ");
         scanf("%d", &opcion);
+        while (getchar() != '\n');
 
         switch (opcion) {
             case 1:
@@ -2678,10 +2747,13 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 2:
                 printf("RUC: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("Categoria: ");
                 leerCadena(categoria, sizeof(categoria));
+                limpiarCadena(categoria);
                 printf("Estado: ");
                 leerCadena(estado, sizeof(estado));
+                limpiarCadena(estado);
                 nuevaCausa = crearCausa(ruc, categoria, estado);
                 agregarCausa(&ministerio->causas, nuevaCausa);
                 crearCarpetaInvestigativa(nuevaCausa);
@@ -2690,22 +2762,27 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 3:
                 printf("RUC a modificar: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("Nueva categoria: ");
                 leerCadena(categoria, sizeof(categoria));
+                limpiarCadena(categoria);
                 printf("Nuevo estado: ");
                 leerCadena(estado, sizeof(estado));
+                limpiarCadena(estado);
                 modificarCausa(ministerio->causas, ruc, categoria, estado);
                 break;
 
             case 4:
                 printf("RUC a eliminar: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 eliminarCausaPorRUC(&ministerio->causas, ruc);
                 break;
 
             case 5:
                 printf("Ingrese RUC a buscar: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 mostrarCausaPorRUC(ministerio->causas, ruc);
                 break;
 
@@ -2716,10 +2793,13 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 7:
                 printf("Nombre: ");
                 leerCadena(nombre, sizeof(nombre));
+                limpiarCadena(nombre);
                 printf("RUT: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 printf("Tipo (1=victima, 2=imputado, 3=testigo, 5=fiscal): ");
                 scanf("%d", &tipo);
+                while (getchar() != '\n');
                 nuevaPersona = crearPersona(nombre, rut, tipo);
                 agregarPersona(&ministerio->personas, nuevaPersona);
                 break;
@@ -2727,30 +2807,37 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 8:
                 printf("Ingrese RUT a modificar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 printf("Nuevo nombre: ");
                 leerCadena(nombre, sizeof(nombre));
+                limpiarCadena(nombre);
                 printf("Nuevo tipo: ");
                 scanf("%d", &tipo);
+                while (getchar() != '\n');
                 modificarDatosPersona(ministerio->personas, rut, nombre, tipo);
                 break;
 
             case 9:
                 printf("Ingrese RUT de la persona a eliminar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 eliminarPersonaPorRut(&ministerio->personas, rut);
                 break;
 
             case 10:
                 printf("Ingrese RUT a buscar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 listarPersonaPorRut(ministerio->personas, rut);
                 break;
 
             case 11:
                 printf("Ingrese RUT de la persona a asociar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 printf("Ingrese RUC de la causa destino: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2769,6 +2856,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 12:
                 actual = ministerio->causas;
                 while (actual != NULL) {
+                    printf("\n--- Contenido de la carpeta investigativa RUC: %s ---\n", actual->datosCausa->RUC);
                     revisarCarpetaInvestigativa(actual->datosCausa->carpetaInvestigativa);
                     actual = actual->sig;
                 }
@@ -2777,6 +2865,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 13:
                 printf("RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2790,12 +2879,16 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 14:
                 printf("RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("ID objeto: ");
                 scanf("%d", &id);
+                while (getchar() != '\n');
                 printf("Nuevo detalle: ");
                 leerCadena(detalle, sizeof(detalle));
+                limpiarCadena(detalle);
                 printf("Nuevo tipo: ");
                 scanf("%d", &tipo);
+                while (getchar() != '\n');
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2809,8 +2902,10 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 15:
                 printf("RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("ID objeto a eliminar: ");
                 scanf("%d", &id);
+                while (getchar() != '\n');
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2824,8 +2919,10 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 16:
                 printf("RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 printf("ID del objeto a buscar: ");
                 scanf("%d", &id);
+                while (getchar() != '\n');
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2858,7 +2955,8 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
 
             case 20:
                 {
-                    int total = 0;
+                    int total;
+                    total = 0;
                     actualCausa = ministerio->causas;
                     while (actualCausa != NULL) {
                         total += contarSentenciasCondenatorias(actualCausa->datosCausa->carpetaInvestigativa);
@@ -2870,7 +2968,8 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
 
             case 21:
                 {
-                    int cantidad = contarArchivosProvisionales(ministerio->causas);
+                    int cantidad;
+                    cantidad = contarArchivosProvisionales(ministerio->causas);
                     printf("Total de causas archivadas provisionalmente: %d\n", cantidad);
                 }
                 break;
@@ -2878,6 +2977,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 22:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
+                limpiarCadena(ruc);
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
@@ -2895,6 +2995,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 23:
                 printf("Ingrese RUT del imputado a buscar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 resultado = buscarImputadoPorRut(ministerio->raizImputados, rut);
                 if (resultado != NULL) {
                     printf("Imputado encontrado: %s | RUT: %s\n",
@@ -2908,6 +3009,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 24:
                 printf("Ingrese RUT del imputado a eliminar: ");
                 leerCadena(rut, sizeof(rut));
+                limpiarCadena(rut);
                 ministerio->raizImputados = eliminarImputadoPorRut(ministerio->raizImputados, rut);
                 printf("Intento de eliminacion completado.\n");
                 break;
