@@ -1181,8 +1181,6 @@ void listarResolucionesJudiciales(struct CarpetaInvestigativa *carpeta) {
         printf("No hay resoluciones judiciales registradas.\n");
         return;
     }
-
-    printf("\n--- Resoluciones Judiciales ---\n");
     actual = carpeta->objetos;
     do {
         if (actual->objeto->tipo == 5) {
@@ -1232,8 +1230,6 @@ void listarSentenciasFinales(struct CarpetaInvestigativa *carpeta) {
         printf("No hay sentencias finales registradas.\n");
         return;
     }
-
-    printf("\n--- Sentencias Finales Registradas ---\n");
     actual = carpeta->objetos;
     do {
         if (actual->objeto->tipo == 5 && actual->objeto->sentenciaFinal == 1) {
@@ -1447,14 +1443,14 @@ void generarReporteEstadoCausas(struct NodoCausa *headCausas) {
 }
 
 /* Cuenta cuántas causas están archivadas provisionalmente */
-int contarArchivosProvisionales(struct NodoCausa *headCausas) {
+int contarCausasArchivadas(struct NodoCausa *headCausas) {
     int contador;
     struct NodoCausa *actual;
 
     contador = 0;
     actual = headCausas;
     while (actual != NULL) {
-        if (strcmp(actual->datosCausa->estado, "archivo provisional") == 0) {
+        if (strcmp(actual->datosCausa->estado, "archivo") == 0) {
             contador++;
         }
         actual = actual->sig;
@@ -2262,7 +2258,6 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                 }
                 break;
             case 9:
-                while (getchar() != '\n');
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
                 actual = ministerio->causas;
@@ -2365,6 +2360,7 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
+                        printf("\n--- Resoluciones Judiciales de la causa RUC: %s ---\n", actual->datosCausa->RUC);
                         listarResolucionesJudiciales(actual->datosCausa->carpetaInvestigativa);
                         break;
                     }
@@ -2524,7 +2520,9 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
     char detalle[200];
     char fechaBuscada[11];
     int tipo;
+    int cantidad;
     int id;
+    int total;
     struct Causa *nuevaCausa;
     struct Persona *nuevaPersona;
     struct NodoCausa *actual;
@@ -2783,6 +2781,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 17:
                 actual = ministerio->causas;
                 while (actual != NULL) {
+                    printf("\n--- Resoluciones Judiciales de la causa RUC: %s ---\n", actual->datosCausa->RUC);
                     listarResolucionesJudiciales(actual->datosCausa->carpetaInvestigativa);
                     actual = actual->sig;
                 }
@@ -2791,6 +2790,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
             case 18:
                 actual = ministerio->causas;
                 while (actual != NULL) {
+                    printf("\n--- Sentencias Finales de la causa RUC: %s ---\n", actual->datosCausa->RUC);
                     listarSentenciasFinales(actual->datosCausa->carpetaInvestigativa);
                     actual = actual->sig;
                 }
@@ -2802,7 +2802,6 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
 
             case 20:
                 {
-                    int total;
                     total = 0;
                     actualCausa = ministerio->causas;
                     while (actualCausa != NULL) {
@@ -2815,8 +2814,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
 
             case 21:
                 {
-                    int cantidad;
-                    cantidad = contarArchivosProvisionales(ministerio->causas);
+                    cantidad = contarCausasArchivadas(ministerio->causas);
                     printf("Total de causas archivadas provisionalmente: %d\n", cantidad);
                 }
                 break;
@@ -2828,7 +2826,7 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
                 actual = ministerio->causas;
                 while (actual != NULL) {
                     if (strcmp(actual->datosCausa->RUC, ruc) == 0) {
-                        int cantidad = contarMedidasProteccionActivas(actual->datosCausa->carpetaInvestigativa);
+                        cantidad = contarMedidasProteccionActivas(actual->datosCausa->carpetaInvestigativa);
                         printf("Medidas de proteccion activas en la causa: %d\n", cantidad);
                         break;
                     }
@@ -2866,10 +2864,9 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
                 listarImputadosInorden(ministerio->raizImputados);
                 break;
             case 26:
-                while (getchar() != '\n'); /* Limpia el buffer antes de leer */
                 printf("Ingrese RUC de la causa para ver sus denuncias: ");
                 leerCadena(ruc, sizeof(ruc));
-
+                limpiarCadena(ruc);
                 actualCausa = ministerio->causas;
 
                 while (actualCausa != NULL) {
@@ -2908,7 +2905,6 @@ void menuAdministrador(struct MinisterioPublico *ministerio) {
                 }
                 break;
             case 27:
-                while (getchar() != '\n');
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
                 actual = ministerio->causas;
