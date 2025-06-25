@@ -2096,24 +2096,37 @@ void menuFiscal(struct MinisterioPublico *ministerio, struct Persona *fiscal) {
                 leerCadena(ruc, sizeof(ruc));
                 limpiarCadena(ruc);
                 actual = ministerio->causas;
+                encontrada = 0;
+
                 while (actual != NULL) {
-                    if (strcmp(actual->datosCausa->RUC, ruc) == 0 && actual->datosCausa->fiscalEncargado != NULL && strcmp(actual->datosCausa->fiscalEncargado->rut, fiscal->rut) == 0) {
+                    if (strcmp(actual->datosCausa->RUC, ruc) == 0 &&
+                        actual->datosCausa->fiscalEncargado != NULL &&
+                        strcmp(actual->datosCausa->fiscalEncargado->rut, fiscal->rut) == 0) {
+
                         encontrada = 1;
+
                         printf("Ingrese RUT del denunciante: ");
                         leerCadena(rut, sizeof(rut));
+
                         printf("Ingrese descripcion: ");
                         leerCadena(detalle, sizeof(detalle));
+
                         printf("Ingrese fecha (dd-mm-aaaa): ");
                         leerCadena(estado, sizeof(estado));
+
                         registrarDenuncia(actual->datosCausa->carpetaInvestigativa, rut, detalle, estado);
-                        encontrada = 1;
                         break;
-                        } else {
-                            printf("No tiene permiso para registrar denuncia en esta causa.\n");
                         }
+
                     actual = actual->sig;
                 }
+
+                if (!encontrada) {
+                    printf("No tiene permiso para registrar denuncia en esta causa.\n");
+                }
+
                 break;
+
             case 6:
                 printf("Ingrese RUC de la causa: ");
                 leerCadena(ruc, sizeof(ruc));
@@ -3025,9 +3038,13 @@ int main() {
     registrarPeritaje(c3->carpetaInvestigativa, "20202020-2", "Lesiones comprobadas", "06-06-2025");
     aplicarMedidaProteccion(c3->carpetaInvestigativa, "10101010-1", "Amenazas previas", "07-06-2025");
 
+    /* Formalizacion del imputado p2 */
+    formalizarConDefensor(ministerio, c2, "Maria Lopez", "98765432-1", "Diego Herrera", "40404040-4",
+                              "Lesiones Graves", "Testigos y pericias", "23-03-2025", 3);
+
     /* Formalizacion del imputado p6 */
-    formalizarConDefensor(ministerio, c3, "Cristiano Ronaldo", "20202020-2", "Diego Herrera", "40404040-4",
-                          "Lesiones leves", "Testigos y pericias", "07-06-2025", 2);
+    formalizarConDefensor(ministerio, c3, "Cristiano Ronaldo", "20202020-2", "Antonio Navarro", "22149473-3",
+                            "Lesiones leves", "Testigos y pericias", "07-06-2025", 2);
 
     /* --- CAUSA c1: robo --- */
     registrarDenuncia(c1->carpetaInvestigativa, p1->rut, "Robo con violencia en la via publica", "01-06-2025");
